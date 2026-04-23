@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Admin Dashboard</h2>
+
+<h3>Comments</h3>
+
+{% for c in comments %}
+
+<div class="card mb-2">
+
+<div class="card-body">
+
+<b>{{c.username}}</b>
+
+<p>{{c.comment}}</p>
+
+<p>Rating: {{c.rating}}</p>
+
+<a href="/delete_comment/{{c.id}}" class="btn btn-danger">
+Delete Comment
+</a>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card mx-auto shadow" style="max-width: 400px; border-radius: 20px;">
+
+    <!-- Top right menu -->
+    <div class="text-end p-2">
+        <span style="font-size:20px;">⋮</span>
+    </div>
+
+    <!-- Profile Image -->
+    <div class="text-center">
+        <img src="{{ user.profile_image }}" 
+             class="rounded-circle border border-3"
+             style="width:120px; height:120px; object-fit:cover;">
+    </div>
+
+    <!-- Name -->
+    <div class="text-center mt-3">
+        <h5>{{ user.name }}</h5>
+        <p class="text-muted">@{{ user.username }}</p>
+    </div>
+
+    <!-- Buttons -->
+    <div class="d-flex gap-2 px-3 mt-3">
+        <button class="btn btn-light w-100">Message</button>
+        <button class="btn btn-light w-100">Catalog</button>
+        <button class="btn btn-light w-100">Share</button>
+    </div>
+
+    <!-- Section -->
+    <div class="px-3 mt-4">
+        <h6>Photo Spots 📸</h6>
+    </div>
+
+    <!-- Photos -->
+    <div class="row g-2 p-3">
+        {% for photo in photos %}
+        <div class="col-6">
+            <img src="{{ photo.image_url }}" class="img-fluid rounded">
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+{% endblock %}

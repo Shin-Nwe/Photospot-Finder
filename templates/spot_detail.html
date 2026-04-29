@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="detail-page">
+
+    <img src="{{ spot.image }}" class="detail-img">
+
+    <div class="detail-content">
+
+        <p>📍 {{ spot.location }}</p>
+        <h1>{{ spot.name }}</h1>
+
+        <p>{{ spot.description }}</p>
+
+        <p>⭐ Rating: {{ spot.rating }}/5</p>
+
+        <h4>Comments</h4>
+        {% for c in spot.comments %}
+            <p class="comment-box">{{ c }}</p>
+        {% endfor %}
+
+        <a href="/spots">Back</a>
+
+    </div>
+
+</div>
+
+{% endblock %}

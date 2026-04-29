@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="about-page">
+
+    <!-- TOP BANNER -->
+    <div class="about-banner">
+        <span>New Photo Spots Every Week ✶ New Photo Spots Every Week ✶</span>
+    </div>
+
+    <!-- FOUNDER 1 -->
+    <section class="about-section reverse">
+        <div class="about-image">
+            <img src="{{ url_for('static', filename='images/founder1.jpg') }}" alt="Founder 1">
+        </div>
+
+        <div class="about-text">
+            <p class="role">Founder //</p>
+            <h1>Meet Tia ✶</h1>
+
+            <p>
+                Tia created Pixy to help people discover beautiful photo spots around the world.
+                She loves exploring new places and sharing creative ideas for capturing perfect moments.
+            </p>
+
+            <p class="tags">Travel // Photography // Creative Mind //</p>
+        </div>
+    </section>
+
+    <!-- FOUNDER 2 -->
+    <section class="about-section reverse">
+        <div class="about-text">
+            <p class="role">Co-Founder //</p>
+            <h1>Meet Shin ✶</h1>
+
+            <p>
+                Shin focuses on building a platform where users can share real experiences and tips.
+                She believes great photos come from the right place, timing, and inspiration.
+            </p>
+
+            <p class="tags">Design // Storytelling // Inspiration //</p>
+        </div>
+
+        <div class="about-image">
+            <img src="{{ url_for('static', filename='images/founder2.jpg') }}" alt="Founder 2">
+        </div>
+    </section>
+
+</div>
+
+{% endblock %}

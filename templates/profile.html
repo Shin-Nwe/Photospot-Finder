@@ -2,47 +2,114 @@
 
 {% block content %}
 
-<div class="card mx-auto shadow" style="max-width: 400px; border-radius: 20px;">
+<div class="profile-page">
+    <div class="profile-wrapper">
 
-    <!-- Top right menu -->
-    <div class="text-end p-2">
-        <span style="font-size:20px;">⋮</span>
-    </div>
-
-    <!-- Profile Image -->
-    <div class="text-center">
-        <img src="{{ user.profile_image }}" 
-             class="rounded-circle border border-3"
-             style="width:120px; height:120px; object-fit:cover;">
-    </div>
-
-    <!-- Name -->
-    <div class="text-center mt-3">
-        <h5>{{ user.name }}</h5>
-        <p class="text-muted">@{{ user.username }}</p>
-    </div>
-
-    <!-- Buttons -->
-    <div class="d-flex gap-2 px-3 mt-3">
-        <button class="btn btn-light w-100">Message</button>
-        <button class="btn btn-light w-100">Catalog</button>
-        <button class="btn btn-light w-100">Share</button>
-    </div>
-
-    <!-- Section -->
-    <div class="px-3 mt-4">
-        <h6>Photo Spots 📸</h6>
-    </div>
-
-    <!-- Photos -->
-    <div class="row g-2 p-3">
-        {% for photo in photos %}
-        <div class="col-6">
-            <img src="{{ photo.image_url }}" class="img-fluid rounded">
+        <!-- HEADER -->
+        <div class="profile-header">
+            <a href="/spots" class="back-icon">‹</a>
+            <h3>@{{ user.username if user else "pixeluser" }}</h3>
+            <span class="menu-icon">✎</span>
         </div>
-        {% endfor %}
-    </div>
 
+        <!-- PROFILE INFO -->
+        <div class="profile-info">
+            <div class="profile-avatar">
+                <img src="{{ url_for('static', filename=user.photo) }}" alt="Profile photo">
+            </div>
+
+            <div class="profile-stats">
+                <div>
+                    <strong>16</strong>
+                    <p>Following</p>
+                </div>
+                <div>
+                    <strong>8219</strong>
+                    <p>Followers</p>
+                </div>
+                <div>
+                    <strong>91.2K</strong>
+                    <p>Likes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- BIO -->
+        <div class="profile-bio">
+            <h1>{{ user.username }}</h1>
+            <p class="handle">ID: {{ user.user_id }}</p>
+            <p>{{ user.bio }}</p>
+        </div>
+
+        <!-- BUTTONS -->
+        <div class="profile-buttons">
+            <button class="follow-btn">Follow</button>
+            <button class="send-btn">✉</button>
+        </div>
+
+        <!-- TABS -->
+        <div class="profile-tabs">
+            <span class="active">▦</span>
+            <span>🔒</span>
+            <span>♡</span>
+        </div>
+
+        <!-- POSTS -->
+        <div class="profile-posts">
+            {% for spot in spots %}
+            <div class="post-card">
+                <div class="post-img"></div>
+                <h4>{{ spot.name }}</h4>
+                <div class="post-meta">
+                    <span>👤 {{ user.username }}</span>
+                    <span>♡ {{ loop.index * 20 }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
 </div>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const followBtn = document.querySelector(".follow-btn");
+    const sendBtn = document.querySelector(".send-btn");
+    const menuBtn = document.querySelector(".menu-icon");
+    const tabs = document.querySelectorAll(".profile-tabs span");
+
+    // FOLLOW BUTTON
+    followBtn.addEventListener("click", function () {
+        if (this.innerText === "Follow") {
+            this.innerText = "Following";
+            this.style.background = "#eee";
+        } else {
+            this.innerText = "Follow";
+            this.style.background = "#fad4ec";
+        }
+    });
+
+    // SEND BUTTON
+    sendBtn.addEventListener("click", function () {
+        alert("Message feature coming soon ✉️");
+    });
+
+    // EDIT BUTTON
+    menuBtn.addEventListener("click", function () {
+        window.location.href = "/edit-profile";
+    });
+
+    // TABS
+    tabs.forEach(tab => {
+        tab.addEventListener("click", function () {
+            tabs.forEach(t => t.classList.remove("active"));
+            this.classList.add("active");
+        });
+    });
+
+});
+</script>
 
 {% endblock %}

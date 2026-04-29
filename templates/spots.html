@@ -2,65 +2,31 @@
 
 {% block content %}
 
-<div class="container mt-5">
+<div class="feed-page">
 
-<h2 class="page-title text-center mb-5">📸 Discover Photo Spots</h2>
+    <h1 class="feed-title">Discover the world</h1>
 
-<div class="row">
+    <div class="spot-grid">
 
-{% for spot in spots %}
+        {% for spot in spots %}
 
-<div class="col-lg-4 col-md-6 mb-4">
+        <div class="feed-card">
 
-<div class="spot-card">
+            <img src="{{ spot.image }}" class="feed-img">
 
-<img src="https://via.placeholder.com/400x200" class="spot-img">
+            <p class="feed-location">📍 {{ spot.location }}</p>
 
-<div class="spot-content">
+            <h3 class="feed-name">{{ spot.name }}</h3>
 
-<h5 class="spot-title">{{ spot.name }}</h5>
+            <a href="/spot/{{ spot.id }}" class="explore-btn">
+                Explore
+            </a>
 
-<p class="spot-city">📍 {{ spot.city }}</p>
+        </div>
 
-<p class="spot-description">
-{{ spot.description }}
-</p>
+        {% endfor %}
 
-{% if session.get("role") == "admin" %}
-
-<a href="/delete_spot/{{spot.id}}" class="btn btn-danger btn-sm mb-3">
-Delete Spot
-</a>
-
-{% endif %}
-
-<hr>
-
-<form method="POST" action="/add_comment/{{spot.id}}">
-
-<label class="form-label">⭐ Rating</label>
-
-<input type="number" name="rating" min="1" max="5" class="form-control mb-2">
-
-<label class="form-label">💬 Comment</label>
-
-<textarea name="comment" class="form-control mb-3" placeholder="Share your experience..."></textarea>
-
-<button class="btn btn-primary w-100">
-Post Comment
-</button>
-
-</form>
-
-</div>
-
-</div>
-
-</div>
-
-{% endfor %}
-
-</div>
+    </div>
 
 </div>
 

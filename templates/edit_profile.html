@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="edit-profile-page">
+
+    <div class="edit-profile-layout">
+
+        <!-- LEFT SIDE: PHOTO PREVIEW -->
+        <div class="edit-left">
+
+            <div class="edit-logo">
+                <div class="logo-circle"></div>
+                <span>Pixel Trial</span>
+            </div>
+
+            <div class="photo-preview-card">
+                <img src="{{ url_for('static', filename=user.photo) }}" alt="Profile photo">
+                <p>Profile Photo</p>
+            </div>
+
+        </div>
+
+        <!-- RIGHT SIDE: PROFILE DETAILS -->
+        <div class="edit-right">
+
+            <div class="edit-tabs">
+                <span>Main page</span>
+                <span>Photo edit</span>
+                <span class="active">Profile details</span>
+            </div>
+
+            <h2>Profile details</h2>
+
+            <form method="POST" action="/edit-profile">
+
+                <label>PROFILE PHOTO</label>
+                <select name="photo">
+                    <option value="1">Photo 1</option>
+                    <option value="2">Photo 2</option>
+                </select>
+
+                <label>USER ID</label>
+                <input type="text" name="user_id" value="{{ user.user_id }}">
+
+                <label>USERNAME</label>
+                <input type="text" name="username" value="{{ user.username }}">
+
+                <label>BIO</label>
+                <textarea name="bio" rows="3">{{ user.bio }}</textarea>
+
+                <button type="submit">SAVE</button>
+
+            </form>
+
+            <a href="/profile" class="back-profile">Back to profile</a>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

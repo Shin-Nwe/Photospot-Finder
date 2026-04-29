@@ -1,96 +1,80 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
-<title>PhotoSpot Finder</title>
+    <title>PhotoSpot Finder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
 </head>
 
 <body>
+    
+ <h2 class="logo">Pixel Trial </h2>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-<div class="container">
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container-fluid">
 
-<a class="navbar-brand" href="/">PhotoSpot</a>
+        <!-- LOGO -->
+        <a class="navbar-brand" href="/">Pixel Trial</a>
 
-<div class="collapse navbar-collapse">
+        <!-- TOGGLER -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-<ul class="navbar-nav me-auto">
+        <!-- NAV CONTENT -->
+        <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
 
-<a class="nav-link" href="/spots">Spots</a>
+            <!-- LEFT SIDE -->
+            <div class="navbar-nav">
+                <a class="nav-link active" href="/">Home</a>
+                <a class="nav-link" href="/about">About</a>
+                <a class="nav-link" href="/spots">Feed</a>
+                <a class="nav-link" href="/profile">Profile</a>
+            </div>
 
-</ul>
+            <!-- RIGHT SIDE (Search + Login) -->
+            <div class="d-flex align-items-center ms-auto">
 
+                <!-- SEARCH BAR -->
+                <form class="d-flex me-3" action="/search" method="GET">
+                    <input class="form-control me-2" type="search" name="query" placeholder="Search spots">
+                    <button class="btn btn-outline-light">Search</button>
+                </form>
 
-<!-- SEARCH BAR -->
-<form class="d-flex me-3" action="/search" method="GET">
-<input class="form-control me-2" type="search" name="query" placeholder="Search spots">
-<button class="btn btn-outline-light">Search</button>
-</form>
+                <!-- AUTH LINKS -->
+                <div class="navbar-nav">
+                    {% if session.get('user_id') %}
+                        <a class="nav-link" href="/logout">Logout</a>
+                    {% else %}
+                        <a class="nav-link" href="/login">Login</a>
+                        <a class="nav-link" href="/register">Register</a>
+                    {% endif %}
+                </div>
 
+            </div>
 
-<ul class="navbar-nav">
-
-<!-- ADMIN MENU -->
-{% if session.get("role") == "admin" %}
-
-<li class="nav-item">
-<a class="nav-link" href="/add_spot">Add Spot</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link" href="/admin">Dashboard</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link" href="/logout">Logout</a>
-</li>
-
-{% else %}
-
-<!-- USER LOGGED IN -->
-{% if session.get("username") %}
-
-<li class="nav-item">
-<a class="nav-link" href="/profile">Profile</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link" href="/logout">Logout</a>
-</li>
-
-{% else %}
-
-<!-- NOT LOGGED IN -->
-<li class="nav-item">
-<a class="nav-link" href="/login">Login</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link" href="/register">Register</a>
-</li>
-
-{% endif %}
-
-{% endif %}
-
-</ul>
-
-</div>
-
-</div>
+        </div>
+    </div>
 </nav>
 
-<div class="container mt-4">
 
-{% block content %}
-{% endblock %}
+<!-- IMPORTANT: Bootstrap JS (for mobile + dropdowns) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-</div>
+    <div class="container mt-4">
+
+        {% block content %}
+        {% endblock %}
+
+    </div>
 
 </body>
+
 </html>

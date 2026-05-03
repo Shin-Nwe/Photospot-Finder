@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Feed — Photospot{% endblock %}
+
+{% block content %}
+<div class="feed-wrap">
+
+  <header class="feed-hdr">
+    <h1 class="feed-title">Discover spots</h1>
+    {% if session.get('user_id') %}
+      <a href="{{ url_for('add_post') }}" class="btn-pill">+ Add post</a>
+    {% endif %}
+  </header>
+
+  {% if posts %}
+    <div class="feed-grid">
+      {% for post in posts %}
+        <article class="fcard">
+
+          <a href="{{ url_for('spot_detail', spot_id=post.id) }}" class="fcard-img-wrap">
+            {% if post.cover_image %}
+              <img src="{{ url_for('static', filename='images/spots/' ~ post.cover_image) }}"
+                   alt="{{ post.name }}" class="fcard-img">
+            {% else %}
+              <div class="fcard-no-img">No photo</div>
+            {% endif %}
+            {% if post.avg_rating %}
+              <span class="fcard-badge">★ {{ post.avg_rating }}</span>
+            {% endif %}
+          </a>
+
+          <div class="fcard-body">
+
+            <div class="fcard-meta">
+              <a href="{{ url_for('profile', user_id=post.user_id) }}" class="fcard-author">
+                {% if post.profile_photo and post.profile_photo != 'default.jpg' %}
+                  <img src="{{ url_for('static', filename='images/profiles/' ~ post.profile_photo) }}"
+                       class="fcard-av" alt="">
+                {% else %}
+                  <div class="fcard-av fcard-av-i">{{ post.username[0].upper() }}</div>
+                {% endif %}
+                <span class="fcard-uname">{{ post.username }}</span>
+              </a>
+              <span class="fcard-date">{{ post.created_at[:10] }}</span>
+            </div>
+
+            <a href="{{ url_for('spot_detail', spot_id=post.id) }}" class="fcard-title-link">
+              <h2 class="fcard-title">{{ post.name }}</h2>
+            </a>
+
+            {% if post.location %}
+              <p class="fcard-loc">📍 {{ post.location }}</p>
+            {% endif %}
+
+            {% if post.description %}
+              <p class="fcard-desc">
+                {{ post.description[:110] }}{% if post.description|length > 110 %}…{% endif %}
+              </p>
+            {% endif %}
+
+            <div class="fcard-footer">
+              <form action="{{ url_for('like', spot_id=post.id) }}" method="POST">
+                <button type="submit" class="like-btn {% if post.id in liked_ids %}liked{% endif %}">
+                  {% if post.id in liked_ids %}♥{% else %}♡{% endif %}
+                  {{ post.like_count }}
+                </button>
+              </form>
+              <span class="fcard-comments">
+                💬 {{ post.comment_count }}
+              </span>
+            </div>
+
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="feed-empty">
+      <p>No spots yet.</p>
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('add_post') }}" class="btn-pill">Be the first to post</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

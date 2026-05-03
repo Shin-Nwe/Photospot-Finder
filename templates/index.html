@@ -2,14 +2,14 @@
 
 {% block content %}
 
-<div class="hero-box" style="background-image: url('{{ url_for('static', filename='images/bg1.jpg') }}');">
+<div class="hero-box" style="background-image: url('{{ url_for('static', filename='images/bg1.jpg') }}')>
 <div class="hero-content">
         <h1>PhotoSpot Finder </h1>
         <p class="hero-description">
     Discover stunning photo spots from hidden gems to iconic landmarks. 
     <br>Capture unforgettable moments with helpful tips and inspiration.
 </p>
-        <a href="#" class="glass-btn">Explore</a>
+        <a href="{{ url_for('feed') }}" class="glass-btn">Explore</a>
     </div>
 </div>
 

@@ -1,64 +1,38 @@
 {% extends "base.html" %}
-
 {% block content %}
 
-<div class="edit-profile-page">
+<div class="ep-wrap">
+  <h1 class="ep-title">Edit profile</h1>
 
-    <div class="edit-profile-layout">
+  <form action="{{ url_for('edit_profile') }}" method="POST" enctype="multipart/form-data">
 
-        <!-- LEFT SIDE: PHOTO PREVIEW -->
-        <div class="edit-left">
-
-            <div class="edit-logo">
-                <div class="logo-circle"></div>
-                <span>Pixel Trial</span>
-            </div>
-
-            <div class="photo-preview-card">
-                <img src="{{ url_for('static', filename=user.photo) }}" alt="Profile photo">
-                <p>Profile Photo</p>
-            </div>
-
-        </div>
-
-        <!-- RIGHT SIDE: PROFILE DETAILS -->
-        <div class="edit-right">
-
-            <div class="edit-tabs">
-                <span>Main page</span>
-                <span>Photo edit</span>
-                <span class="active">Profile details</span>
-            </div>
-
-            <h2>Profile details</h2>
-
-            <form method="POST" action="/edit-profile">
-
-                <label>PROFILE PHOTO</label>
-                <select name="photo">
-                    <option value="1">Photo 1</option>
-                    <option value="2">Photo 2</option>
-                </select>
-
-                <label>USER ID</label>
-                <input type="text" name="user_id" value="{{ user.user_id }}">
-
-                <label>USERNAME</label>
-                <input type="text" name="username" value="{{ user.username }}">
-
-                <label>BIO</label>
-                <textarea name="bio" rows="3">{{ user.bio }}</textarea>
-
-                <button type="submit">SAVE</button>
-
-            </form>
-
-            <a href="/profile" class="back-profile">Back to profile</a>
-
-        </div>
-
+    <div class="ep-field">
+      <label>Profile photo</label>
+      {% if user.profile_photo and user.profile_photo != 'default.jpg' %}
+        <img class="ep-current-photo"
+             src="{{ url_for('static', filename='images/profiles/' ~ user.profile_photo) }}"
+             alt="current photo">
+      {% endif %}
+      <input type="file" name="profile_photo" accept="image/*">
     </div>
 
+    <div class="ep-field">
+      <label for="bio">Bio</label>
+      <textarea id="bio" name="bio" rows="3" placeholder="Tell people about yourself...">{{ user.bio or '' }}</textarea>
+    </div>
+
+    <div class="ep-field">
+      <label for="instagram">Instagram handle</label>
+      <input type="text" id="instagram" name="instagram"
+             placeholder="username (no @)"
+             value="{{ user.instagram or '' }}">
+    </div>
+
+    <button type="submit" class="ep-btn">Save changes</button>
+    <a href="{{ url_for('profile', user_id=session['user_id']) }}" class="ep-cancel">Cancel</a>
+
+  </form>
 </div>
+
 
 {% endblock %}

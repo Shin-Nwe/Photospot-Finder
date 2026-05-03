@@ -1,115 +1,105 @@
 {% extends "base.html" %}
-
 {% block content %}
 
-<div class="profile-page">
-    <div class="profile-wrapper">
+<div class="pf-wrap">
 
-        <!-- HEADER -->
-        <div class="profile-header">
-            <a href="/spots" class="back-icon">‹</a>
-            <h3>@{{ user.username if user else "pixeluser" }}</h3>
-            <span class="menu-icon">✎</span>
-        </div>
+  <!-- Profile header -->
+  <div class="pf-hero">
 
-        <!-- PROFILE INFO -->
-        <div class="profile-info">
-            <div class="profile-avatar">
-                <img src="{{ url_for('static', filename=user.photo) }}" alt="Profile photo">
-            </div>
-
-            <div class="profile-stats">
-                <div>
-                    <strong>16</strong>
-                    <p>Following</p>
-                </div>
-                <div>
-                    <strong>8219</strong>
-                    <p>Followers</p>
-                </div>
-                <div>
-                    <strong>91.2K</strong>
-                    <p>Likes</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- BIO -->
-        <div class="profile-bio">
-            <h1>{{ user.username }}</h1>
-            <p class="handle">ID: {{ user.user_id }}</p>
-            <p>{{ user.bio }}</p>
-        </div>
-
-        <!-- BUTTONS -->
-        <div class="profile-buttons">
-            <button class="follow-btn">Follow</button>
-            <button class="send-btn">✉</button>
-        </div>
-
-        <!-- TABS -->
-        <div class="profile-tabs">
-            <span class="active">▦</span>
-            <span>🔒</span>
-            <span>♡</span>
-        </div>
-
-        <!-- POSTS -->
-        <div class="profile-posts">
-            {% for spot in spots %}
-            <div class="post-card">
-                <div class="post-img"></div>
-                <h4>{{ spot.name }}</h4>
-                <div class="post-meta">
-                    <span>👤 {{ user.username }}</span>
-                    <span>♡ {{ loop.index * 20 }}</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
+    <div class="pf-avatar">
+      {% if user.profile_photo and user.profile_photo != 'default.jpg' %}
+        <img src="{{ url_for('static', filename='images/profiles/' ~ user.profile_photo) }}"
+             alt="{{ user.username }}">
+      {% else %}
+        {{ user.username[0].upper() }}
+      {% endif %}
     </div>
+
+    <div class="pf-info">
+      <h1 class="pf-username">{{ user.username }}</h1>
+
+      {% if user.instagram %}
+        <p class="pf-handle">@{{ user.instagram }}</p>
+      {% else %}
+        <p class="pf-handle">@{{ user.username }}</p>
+      {% endif %}
+
+      <p class="pf-bio">{{ user.bio or "No bio yet ✨" }}</p>
+
+      <div class="pf-stats">
+        <div class="pf-stat">
+          <strong>{{ posts | length }}</strong>
+          <span>Posts</span>
+        </div>
+
+        <div class="pf-stat">
+          <strong>{{ followers }}</strong>
+          <span>Followers</span>
+        </div>
+
+        <div class="pf-stat">
+          <strong>{{ following }}</strong>
+          <span>Following</span>
+        </div>
+
+        <div class="pf-stat">
+          <strong>{{ likes }}</strong>
+          <span>Likes</span>
+        </div>
+
+        <div class="pf-stat">
+          <strong>{{ avg_rating }}</strong>
+          <span>Avg rating</span>
+        </div>
+      </div>
+
+      <div class="pf-actions">
+        {% if session.get('user_id') == user.id %}
+          <a href="{{ url_for('edit_profile') }}" class="pf-btn">Edit Profile ✎</a>
+        {% else %}
+          {% if session.get('user_id') %}
+            <form action="{{ url_for('follow', user_id=user.id) }}" method="POST">
+              <button type="submit" class="pf-btn fill">
+                {{ 'Unfollow' if is_following else 'Follow' }}
+              </button>
+            </form>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <hr class="pf-hr">
+
+  <!-- Posts grid -->
+  <p class="pf-section-label">Posts</p>
+
+  {% if posts %}
+    <div class="pf-grid">
+      {% for post in posts %}
+        <a href="{{ url_for('spot_detail', spot_id=post.id) }}" class="pf-cell">
+
+          {% if post.cover_image %}
+            <img src="{{ url_for('static', filename='images/spots/' ~ post.cover_image) }}"
+                 alt="{{ post.name }}">
+          {% else %}
+            <div class="pf-cell-placeholder">{{ post.name }}</div>
+          {% endif %}
+
+          <div class="pf-cell-footer">{{ post.name }}</div>
+
+          <div class="pf-cell-overlay">
+            <span>{{ post.location or '' }}</span>
+          </div>
+
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="pf-empty">No spots posted yet.</p>
+  {% endif %}
+
 </div>
-
-<!-- ===== JAVASCRIPT ===== -->
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-
-    const followBtn = document.querySelector(".follow-btn");
-    const sendBtn = document.querySelector(".send-btn");
-    const menuBtn = document.querySelector(".menu-icon");
-    const tabs = document.querySelectorAll(".profile-tabs span");
-
-    // FOLLOW BUTTON
-    followBtn.addEventListener("click", function () {
-        if (this.innerText === "Follow") {
-            this.innerText = "Following";
-            this.style.background = "#eee";
-        } else {
-            this.innerText = "Follow";
-            this.style.background = "#fad4ec";
-        }
-    });
-
-    // SEND BUTTON
-    sendBtn.addEventListener("click", function () {
-        alert("Message feature coming soon ✉️");
-    });
-
-    // EDIT BUTTON
-    menuBtn.addEventListener("click", function () {
-        window.location.href = "/edit-profile";
-    });
-
-    // TABS
-    tabs.forEach(tab => {
-        tab.addEventListener("click", function () {
-            tabs.forEach(t => t.classList.remove("active"));
-            this.classList.add("active");
-        });
-    });
-
-});
-</script>
 
 {% endblock %}

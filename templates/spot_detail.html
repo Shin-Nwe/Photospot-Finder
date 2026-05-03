@@ -1,29 +1,196 @@
 {% extends "base.html" %}
+{% block title %}{{ spot.name }} — Photospot{% endblock %}
 
 {% block content %}
+<div class="sd-wrap">
 
-<div class="detail-page">
+  <!-- Gallery -->
+  {% set imgs = images | list %}
+  {% if imgs %}
 
-    <img src="{{ spot.image }}" class="detail-img">
+    {% if imgs|length == 1 %}
+      <div class="sd-gallery gal-one">
+        <div class="gal-cell gal-hero">
+          <img src="{{ url_for('static', filename='images/spots/' ~ imgs[0].filename) }}" alt="{{ spot.name }}">
+        </div>
+      </div>
 
-    <div class="detail-content">
-
-        <p>📍 {{ spot.location }}</p>
-        <h1>{{ spot.name }}</h1>
-
-        <p>{{ spot.description }}</p>
-
-        <p>⭐ Rating: {{ spot.rating }}/5</p>
-
-        <h4>Comments</h4>
-        {% for c in spot.comments %}
-            <p class="comment-box">{{ c }}</p>
+    {% elif imgs|length == 2 %}
+      <div class="sd-gallery gal-two">
+        {% for img in imgs %}
+          <div class="gal-cell">
+            <img src="{{ url_for('static', filename='images/spots/' ~ img.filename) }}" alt="{{ spot.name }}">
+          </div>
         {% endfor %}
+      </div>
 
-        <a href="/spots">Back</a>
+    {% elif imgs|length == 3 %}
+      <div class="sd-gallery gal-multi">
+        <div class="gal-cell gal-hero">
+          <img src="{{ url_for('static', filename='images/spots/' ~ imgs[0].filename) }}" alt="{{ spot.name }}">
+        </div>
+        <div class="gal-side">
+          <div class="gal-cell">
+            <img src="{{ url_for('static', filename='images/spots/' ~ imgs[1].filename) }}" alt="{{ spot.name }}">
+          </div>
+          <div class="gal-cell">
+            <img src="{{ url_for('static', filename='images/spots/' ~ imgs[2].filename) }}" alt="{{ spot.name }}">
+          </div>
+        </div>
+      </div>
 
+    {% else %}
+      <div class="sd-gallery gal-many">
+        {% for img in imgs %}
+          <div class="gal-cell {% if loop.first %}gal-hero{% endif %}">
+            <img src="{{ url_for('static', filename='images/spots/' ~ img.filename) }}" alt="{{ spot.name }}">
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+  {% elif spot.cover_image %}
+    <div class="sd-gallery gal-one">
+      <div class="gal-cell gal-hero">
+        <img src="{{ url_for('static', filename='images/spots/' ~ spot.cover_image) }}" alt="{{ spot.name }}">
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Body: main + sidebar -->
+  <div class="sd-body">
+
+    <!-- Main -->
+    <div class="sd-main">
+
+      <h1 class="sd-title">{{ spot.name }}</h1>
+
+      {% if spot.location %}
+        <div class="sd-loc-row">
+          <p class="sd-loc">📍 {{ spot.location }}</p>
+          <span class="sd-date">{{ spot.created_at[:10] }}</span>
+        </div>
+      {% endif %}
+
+      {% if spot.description %}
+        <p class="sd-desc">{{ spot.description }}</p>
+      {% endif %}
+
+      <!-- Avg rating -->
+      {% if spot.avg_rating %}
+        <p class="sd-avg">
+          {% for i in range(1, 6) %}
+            {% if i <= spot.avg_rating %}★{% else %}☆{% endif %}
+          {% endfor %}
+          <span class="sd-avg-num">{{ spot.avg_rating }}</span>
+        </p>
+      {% endif %}
+
+      <!-- Visitor rating -->
+      {% if session.get('user_id') and session['user_id'] != spot.user_id %}
+        <form action="{{ url_for('rate', spot_id=spot.id) }}" method="POST" class="sd-rate-form">
+          <span class="sd-rate-lbl">Your rating:</span>
+          {% for i in range(1, 6) %}
+            <button type="submit" name="rating" value="{{ i }}"
+                    class="sd-star-btn {% if user_rating and i <= user_rating %}filled{% endif %}">
+              {% if user_rating and i <= user_rating %}★{% else %}☆{% endif %}
+            </button>
+          {% endfor %}
+        </form>
+      {% endif %}
+
+      <!-- Like -->
+      <div class="sd-action-row">
+        <form action="{{ url_for('like', spot_id=spot.id) }}" method="POST">
+          <button type="submit" class="sd-like-btn {% if user_liked %}liked{% endif %}">
+            {% if user_liked %}♥ Liked{% else %}♡ Like{% endif %}
+            ({{ spot.like_count }})
+          </button>
+        </form>
+      </div>
+
+      <!-- Comments -->
+      <section class="sd-comments" id="comments">
+        <h2 class="sd-comments-title">
+          Comments <span class="sd-comments-count">{{ comments | length }}</span>
+        </h2>
+
+        {% if comments %}
+          <div class="sd-comment-list">
+            {% for c in comments %}
+              <div class="sd-comment">
+                <a href="{{ url_for('profile', user_id=c.user_id) }}">
+                  {% if c.profile_photo and c.profile_photo != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='images/profiles/' ~ c.profile_photo) }}"
+                         class="sd-cav" alt="">
+                  {% else %}
+                    <div class="sd-cav sd-cav-i">{{ c.username[0].upper() }}</div>
+                  {% endif %}
+                </a>
+                <div class="sd-cbody">
+                  <div class="sd-cmeta">
+                    <a href="{{ url_for('profile', user_id=c.user_id) }}" class="sd-cuser">{{ c.username }}</a>
+                    <span class="sd-ctime">{{ c.created_at[:16].replace('T',' ') }}</span>
+                  </div>
+                  <p class="sd-ctext">{{ c.comment }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="sd-no-comments">No comments yet. Be the first!</p>
+        {% endif %}
+
+        {% if session.get('user_id') %}
+          <form action="{{ url_for('add_comment', spot_id=spot.id) }}" method="POST" class="sd-cform">
+            <div class="sd-cav sd-cav-i">{{ session['username'][0].upper() }}</div>
+            <div class="sd-cform-right">
+              <textarea name="comment" class="sd-textarea"
+                        placeholder="Add a comment…" rows="2" required></textarea>
+              <div class="sd-post-row">
+                <button type="submit" class="sd-post-btn">Post</button>
+                {% if session.get('user_id') == spot.user_id %}
+                  <a href="{{ url_for('edit_post', post_id=spot.id) }}" class="sd-edit-btn">Edit / Delete</a>
+                {% endif %}
+              </div>
+            </div>
+          </form>
+        {% else %}
+          <p class="sd-login-prompt">
+            <a href="{{ url_for('login') }}">Log in</a> to comment.
+          </p>
+        {% endif %}
+
+      </section>
     </div>
 
-</div>
+    <!-- Sidebar -->
+    <aside class="sd-sidebar">
+      <div class="sd-sidebar-card">
+        <p class="sd-sidebar-lbl">Posted by</p>
+        <a href="{{ url_for('profile', user_id=spot.user_id) }}" class="sd-owner">
+          {% if spot.profile_photo and spot.profile_photo != 'default.jpg' %}
+            <img src="{{ url_for('static', filename='images/profiles/' ~ spot.profile_photo) }}"
+                 class="sd-owner-av" alt="">
+          {% else %}
+            <div class="sd-owner-av sd-owner-av-i">{{ spot.username[0].upper() }}</div>
+          {% endif %}
+          <div>
+            <p class="sd-owner-name">{{ spot.username }}</p>
+            {% if spot.bio %}
+              <p class="sd-owner-bio">{{ spot.bio[:70] }}{% if spot.bio|length > 70 %}…{% endif %}</p>
+            {% endif %}
+          </div>
+        </a>
 
+        {% if session.get('user_id') and session['user_id'] != spot.user_id %}
+          <form action="{{ url_for('follow', user_id=spot.user_id) }}" method="POST" style="margin-top:12px;">
+            <button type="submit" class="sd-follow-btn">Follow</button>
+          </form>
+        {% endif %}
+      </div>
+    </aside>
+
+  </div>
+</div>
 {% endblock %}

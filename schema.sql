@@ -14,7 +14,8 @@ CREATE TABLE users (
     username    TEXT UNIQUE NOT NULL,
     email       TEXT UNIQUE,
     password    TEXT NOT NULL,
-    role        TEXT DEFAULT 'user'
+    role        TEXT DEFAULT 'user',
+    is_admin    INTEGER DEFAULT 0
 );
 
 -- PROFILES
@@ -34,7 +35,7 @@ CREATE TABLE spots (
     name        TEXT NOT NULL,
     location    TEXT,
     description TEXT,
-    cover_image TEXT,                          -- first/hero image filename
+    cover_image TEXT,
     created_at  TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
@@ -59,7 +60,7 @@ CREATE TABLE comments (
     FOREIGN KEY(spot_id) REFERENCES spots(id)
 );
 
--- RATINGS (owner rates their own post, or visitors rate spots)
+-- RATINGS
 CREATE TABLE ratings (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id    INTEGER NOT NULL,

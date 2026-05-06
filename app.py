@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify, flash
 import sqlite3
 import os
+from functools import wraps
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -29,6 +30,15 @@ def get_db():
     return conn
 
 
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("user_id") or not session.get("is_admin"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
 def init_db():
     os.makedirs(DB_DIR, exist_ok=True)
     os.makedirs(PROFILE_UPLOAD_FOLDER, exist_ok=True)
@@ -36,27 +46,223 @@ def init_db():
 
     if not os.path.exists(DB_PATH):
         conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
         with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
             cursor.executescript(f.read())
 
         cursor.execute(
-            "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
-            ("admin", "admin@example.com", "admin123", "admin")
+            "INSERT INTO users (username, email, password, role, is_admin) VALUES (?, ?, ?, ?, ?)",
+            ("admin", "admin@example.com", generate_password_hash("adminpassword"), "admin", 1)
         )
+        admin_id = cursor.lastrowid
 
         cursor.execute(
             "INSERT INTO profiles (user_id, bio, profile_photo, instagram) VALUES (?, ?, ?, ?)",
-            (1, "Admin profile", "default.jpg", "")
+            (admin_id, "Admin profile", "default.jpg", "")
         )
 
         conn.commit()
         conn.close()
         print("Database initialized")
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        current_columns = [row["name"] for row in cursor.execute("PRAGMA table_info(users)").fetchall()]
+        if "is_admin" not in current_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0")
+
+        admin = cursor.execute(
+            "SELECT id FROM users WHERE email = ?",
+            ("admin@example.com",)
+        ).fetchone()
+
+        if admin:
+            admin_id = admin["id"]
+            cursor.execute(
+                "UPDATE users SET is_admin = 1, role = 'admin' WHERE id = ?",
+                (admin_id,)
+            )
+        else:
+            cursor.execute(
+                "INSERT INTO users (username, email, password, role, is_admin) VALUES (?, ?, ?, ?, ?)",
+                ("admin", "admin@example.com", generate_password_hash("adminpassword"), "admin", 1)
+            )
+            admin_id = cursor.lastrowid
+
+        cursor.execute(
+            "INSERT OR IGNORE INTO profiles (user_id, bio, profile_photo, instagram) VALUES (?, ?, ?, ?)",
+            (admin_id, "Admin profile", "default.jpg", "")
+        )
+
+        conn.commit()
+        conn.close()
 
 
 init_db()
+
+
+@app.before_request
+def check_user_session():
+    if 'user_id' in session:
+        db = get_db()
+        user = db.execute(
+            'SELECT id, role, is_admin FROM users WHERE id = ?',
+            (session['user_id'],)
+        ).fetchone()
+        db.close()
+
+        if not user:
+            session.clear()
+        else:
+            session['role'] = user['role']
+            session['is_admin'] = bool(user['is_admin'])
+
+
+@app.route('/admin')
+@admin_required
+def admin():
+    db = get_db()
+
+    users = db.execute("""
+        SELECT
+            users.id,
+            users.username,
+            users.email,
+            users.role,
+            users.is_admin,
+            profiles.profile_photo,
+            COUNT(DISTINCT spots.id) AS post_count,
+            COUNT(DISTINCT followers.id) AS follower_count
+        FROM users
+        LEFT JOIN profiles ON profiles.user_id = users.id
+        LEFT JOIN spots ON spots.user_id = users.id
+        LEFT JOIN followers ON followers.following_id = users.id
+        GROUP BY users.id
+        ORDER BY users.id ASC
+    """).fetchall()
+
+    posts = db.execute("""
+        SELECT
+            spots.id,
+            spots.name,
+            spots.location,
+            spots.cover_image,
+            spots.created_at,
+            users.id AS user_id,
+            users.username,
+            COUNT(DISTINCT likes.id) AS like_count,
+            COUNT(DISTINCT comments.id) AS comment_count,
+            COUNT(DISTINCT spot_images.id) AS image_count,
+            ROUND(AVG(ratings.rating), 1) AS avg_rating
+        FROM spots
+        JOIN users ON users.id = spots.user_id
+        LEFT JOIN likes ON likes.spot_id = spots.id
+        LEFT JOIN comments ON comments.spot_id = spots.id
+        LEFT JOIN spot_images ON spot_images.spot_id = spots.id
+        LEFT JOIN ratings ON ratings.spot_id = spots.id
+        GROUP BY spots.id
+        ORDER BY spots.created_at DESC
+    """).fetchall()
+
+    comments = db.execute("""
+        SELECT comments.id, comments.comment, comments.created_at, comments.user_id, comments.spot_id,
+               users.username AS author, spots.name AS spot_name
+        FROM comments
+        JOIN users ON users.id = comments.user_id
+        JOIN spots ON spots.id = comments.spot_id
+        ORDER BY comments.created_at DESC
+    """).fetchall()
+
+    stats = {
+        'users': db.execute('SELECT COUNT(*) FROM users').fetchone()[0],
+        'posts': db.execute('SELECT COUNT(*) FROM spots').fetchone()[0],
+        'comments': db.execute('SELECT COUNT(*) FROM comments').fetchone()[0],
+        'likes': db.execute('SELECT COUNT(*) FROM likes').fetchone()[0],
+        'ratings': db.execute('SELECT COUNT(*) FROM ratings').fetchone()[0],
+        'images': db.execute('SELECT COUNT(*) FROM spot_images').fetchone()[0],
+        'followers': db.execute('SELECT COUNT(*) FROM followers').fetchone()[0]
+    }
+
+    db.close()
+    return render_template('admin.html', users=users, posts=posts, comments=comments, stats=stats)
+
+
+@app.route('/admin/delete-user/<int:user_id>', methods=['POST'])
+@admin_required
+def admin_delete_user(user_id):
+    if user_id == session.get('user_id'):
+        flash('You cannot delete your own admin account.', 'admin_error')
+        return redirect(url_for('admin'))
+
+    db = get_db()
+    user = db.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,)).fetchone()
+    if not user:
+        db.close()
+        flash('User not found.', 'admin_error')
+        return redirect(url_for('admin'))
+
+    if user['is_admin']:
+        db.close()
+        flash('Admin accounts cannot be deleted.', 'admin_error')
+        return redirect(url_for('admin'))
+
+    db.execute('DELETE FROM followers WHERE follower_id = ? OR following_id = ?', (user_id, user_id))
+    db.execute('DELETE FROM likes WHERE user_id = ?', (user_id,))
+    db.execute('DELETE FROM ratings WHERE user_id = ?', (user_id,))
+    db.execute('DELETE FROM comments WHERE user_id = ?', (user_id,))
+    db.execute('DELETE FROM spot_images WHERE spot_id IN (SELECT id FROM spots WHERE user_id = ?)', (user_id,))
+    db.execute('DELETE FROM spots WHERE user_id = ?', (user_id,))
+    db.execute('DELETE FROM profiles WHERE user_id = ?', (user_id,))
+    db.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    db.commit()
+    db.close()
+
+    flash('User deleted successfully.', 'admin_ok')
+    return redirect(url_for('admin'))
+
+
+@app.route('/admin/delete-post/<int:post_id>', methods=['POST'])
+@admin_required
+def admin_delete_post(post_id):
+    db = get_db()
+    post = db.execute('SELECT id FROM spots WHERE id = ?', (post_id,)).fetchone()
+    if not post:
+        db.close()
+        flash('Post not found.', 'admin_error')
+        return redirect(url_for('admin'))
+
+    db.execute('DELETE FROM spot_images WHERE spot_id = ?', (post_id,))
+    db.execute('DELETE FROM likes WHERE spot_id = ?', (post_id,))
+    db.execute('DELETE FROM ratings WHERE spot_id = ?', (post_id,))
+    db.execute('DELETE FROM comments WHERE spot_id = ?', (post_id,))
+    db.execute('DELETE FROM spots WHERE id = ?', (post_id,))
+    db.commit()
+    db.close()
+
+    flash('Post deleted successfully.', 'admin_ok')
+    return redirect(url_for('admin'))
+
+
+@app.route('/admin/delete-comment/<int:comment_id>', methods=['POST'])
+@admin_required
+def admin_delete_comment(comment_id):
+    db = get_db()
+    comment = db.execute('SELECT id FROM comments WHERE id = ?', (comment_id,)).fetchone()
+    if not comment:
+        db.close()
+        flash('Comment not found.', 'admin_error')
+        return redirect(url_for('admin'))
+
+    db.execute('DELETE FROM comments WHERE id = ?', (comment_id,))
+    db.commit()
+    db.close()
+
+    flash('Comment deleted successfully.', 'admin_ok')
+    return redirect(url_for('admin'))
 
 
 @app.route('/')
@@ -94,28 +300,40 @@ def register():
     error = None
 
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
+        username = request.form.get("username", "").strip() or request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip() or request.form.get("Email", "").strip()
         password = request.form.get("password", "").strip()
-        email = request.form.get("email", "").strip() or None
+        confirm_password = request.form.get("confirm_password", "").strip()
 
-        if not username or not password:
-            error = "Username and password are required."
+        if not username or not email or not password:
+            error = "All fields are required."
+        elif password != confirm_password:
+            error = "Passwords do not match."
         else:
             db = get_db()
             try:
+                password_hash = generate_password_hash(password, method="pbkdf2:sha256")
+
                 cur = db.execute(
-                    "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
-                    (username, email, password, "user")
+                    """
+                    INSERT INTO users (username, email, password, role, is_admin)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (username, email, password_hash, "user", 0)
                 )
+
                 user_id = cur.lastrowid
 
                 db.execute(
-                    "INSERT INTO profiles (user_id, bio, profile_photo, instagram) VALUES (?, ?, ?, ?)",
+                    """
+                    INSERT INTO profiles (user_id, bio, profile_photo, instagram)
+                    VALUES (?, ?, ?, ?)
+                    """,
                     (user_id, "", "default.jpg", "")
                 )
 
                 db.commit()
-                return redirect("/login")
+                return redirect(url_for("login"))
 
             except sqlite3.IntegrityError:
                 error = "Username or email already exists."
@@ -124,32 +342,36 @@ def register():
 
     return render_template("register.html", error=error)
 
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
 
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
+        username_or_email = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
 
         db = get_db()
         user = db.execute(
-            "SELECT * FROM users WHERE username = ? AND password = ?",
-            (username, password)
+            """
+            SELECT * FROM users
+            WHERE username = ? OR email = ?
+            """,
+            (username_or_email, username_or_email)
         ).fetchone()
         db.close()
 
-        if user:
+        if user and check_password_hash(user["password"], password):
             session["user_id"] = user["id"]
             session["username"] = user["username"]
+            session["email"] = user["email"]
             session["role"] = user["role"]
-            return redirect("/feed")
+            session["is_admin"] = bool(user["is_admin"])
 
-        error = "Invalid username or password."
+            return redirect(url_for("feed"))
+
+        error = "Invalid username/email or password."
 
     return render_template("login.html", error=error)
-
 
 @app.route("/logout")
 def logout():
@@ -222,6 +444,7 @@ def settings():
         'SELECT id, username, email FROM users WHERE id = ?',
         (session['user_id'],)
     ).fetchone()
+    db.close()
     return render_template('settings.html', user=user)
 
 
@@ -230,33 +453,39 @@ def change_password():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    current  = request.form.get('current_password', '')
-    new_pw   = request.form.get('new_password', '')
-    confirm  = request.form.get('confirm_password', '')
+    current = request.form.get('current_password', '').strip()
+    new_pw = request.form.get('new_password', '').strip()
+    confirm = request.form.get('confirm_password', '').strip()
 
-    db   = get_db()
+    db = get_db()
     user = db.execute(
         'SELECT password FROM users WHERE id = ?',
         (session['user_id'],)
     ).fetchone()
 
-    if not check_password_hash(user['password'], current):
+    if not user or not check_password_hash(user['password'], current):
+        db.close()
         flash('Current password is incorrect.', 'pw')
         return redirect(url_for('settings') + '#password')
 
     if len(new_pw) < 6:
+        db.close()
         flash('New password must be at least 6 characters.', 'pw')
         return redirect(url_for('settings') + '#password')
 
     if new_pw != confirm:
+        db.close()
         flash('New passwords do not match.', 'pw')
         return redirect(url_for('settings') + '#password')
 
     db.execute(
         'UPDATE users SET password = ? WHERE id = ?',
-        (generate_password_hash(new_pw), session['user_id'])
+        (generate_password_hash(new_pw, method="pbkdf2:sha256"), session['user_id'])
     )
+
     db.commit()
+    db.close()
+
     flash('Password updated successfully.', 'pw_ok')
     return redirect(url_for('settings') + '#password')
 
@@ -267,19 +496,21 @@ def change_email():
         return redirect(url_for('login'))
 
     new_email = request.form.get('new_email', '').strip()
-    password  = request.form.get('email_password', '')
+    password = request.form.get('email_password', '').strip()
 
     if not new_email:
         flash('Please enter a new email.', 'email')
         return redirect(url_for('settings') + '#email')
 
-    db   = get_db()
+    db = get_db()
+
     user = db.execute(
         'SELECT password FROM users WHERE id = ?',
         (session['user_id'],)
     ).fetchone()
 
-    if not check_password_hash(user['password'], password):
+    if not user or not check_password_hash(user['password'], password):
+        db.close()
         flash('Password is incorrect.', 'email')
         return redirect(url_for('settings') + '#email')
 
@@ -287,7 +518,9 @@ def change_email():
         'SELECT id FROM users WHERE email = ? AND id != ?',
         (new_email, session['user_id'])
     ).fetchone()
+
     if existing:
+        db.close()
         flash('That email is already in use.', 'email')
         return redirect(url_for('settings') + '#email')
 
@@ -295,7 +528,12 @@ def change_email():
         'UPDATE users SET email = ? WHERE id = ?',
         (new_email, session['user_id'])
     )
+
     db.commit()
+    db.close()
+
+    session['email'] = new_email
+
     flash('Email updated successfully.', 'email_ok')
     return redirect(url_for('settings') + '#email')
 
@@ -614,6 +852,7 @@ def profile(user_id=None):
         SELECT
             users.id,
             users.username,
+            users.email,
             profiles.bio,
             profiles.profile_photo,
             profiles.instagram
@@ -661,6 +900,7 @@ def profile(user_id=None):
         avg_rating = 0
 
     is_following = False
+
     if session["user_id"] != user_id:
         is_following = db.execute(
             "SELECT 1 FROM followers WHERE follower_id = ? AND following_id = ?",
@@ -1000,7 +1240,6 @@ def search():
     db.close()
 
     return render_template("feed.html", posts=posts, liked_ids=liked_ids)
-
 
 if __name__ == "__main__":
     app.run(debug=True)

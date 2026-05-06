@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel — Photospot{% endblock %}
+
+{% block content %}
+<div class="adm-wrap">
+
+  <!-- Header -->
+  <div class="adm-header">
+    <div>
+      <p class="adm-eyebrow">⚙ Admin Panel</p>
+      <h1 class="adm-title">Dashboard</h1>
+    </div>
+    <a href="{{ url_for('feed') }}" class="adm-back">← Back to site</a>
+  </div>
+
+  <!-- Flash messages -->
+  {% for msg in get_flashed_messages(category_filter=['admin_ok']) %}
+    <div class="adm-flash adm-flash-ok">✓ {{ msg }}</div>
+  {% endfor %}
+  {% for msg in get_flashed_messages(category_filter=['admin_error']) %}
+    <div class="adm-flash adm-flash-err">✕ {{ msg }}</div>
+  {% endfor %}
+
+  <!-- Quick nav -->
+  <div class="adm-nav">
+    <a href="#stats"    class="adm-nav-item">📊 Stats</a>
+    <a href="#users"    class="adm-nav-item">👤 Users ({{ users|length }})</a>
+    <a href="#posts"    class="adm-nav-item">📍 Posts ({{ posts|length }})</a>
+    <a href="#comments" class="adm-nav-item">💬 Comments ({{ comments|length }})</a>
+  </div>
+
+<!-- Bar Chart -->
+  <section class="adm-section adm-chart-section">
+    <h2 class="adm-section-title">Site Activity</h2>
+    <div class="adm-chart">
+
+      {% set chart_data = [
+        ('Users',    stats.users,    '#c8a96e'),
+        ('Posts',    stats.posts,    '#7eb8c9'),
+        ('Comments', stats.comments, '#9bc97e'),
+        ('Likes',    stats.likes,    '#e07e7e'),
+        ('Ratings',  stats.ratings,  '#b07ed4'),
+        ('Images',   stats.images,   '#e0b07e'),
+        ('Follows',  stats.followers,'#7ec9b0'),
+      ] %}
+
+      {% set max_val = [stats.users, stats.posts, stats.comments, stats.likes, stats.ratings, stats.images, stats.followers] | max %}
+
+      {% for label, value, color in chart_data %}
+        <div class="adm-bar-group">
+          <div class="adm-bar-track">
+            <div class="adm-bar-fill"
+                 style="height: {% if max_val > 0 %}{{ ((value / max_val) * 100) | round | int }}%{% else %}0%{% endif %};
+                        background: {{ color }};">
+              <span class="adm-bar-val">{{ value }}</span>
+            </div>
+          </div>
+          <span class="adm-bar-lbl">{{ label }}</span>
+        </div>
+      {% endfor %}
+
+    </div>
+  </section>
+
+
+  <!-- Stats -->
+  <section class="adm-section" id="stats">
+    <h2 class="adm-section-title">Overview</h2>
+    <div class="adm-stats">
+      <div class="adm-stat-card">
+        <span class="adm-stat-num">{{ stats.users }}</span>
+        <span class="adm-stat-lbl">Users</span>
+      </div>
+      <div class="adm-stat-card">
+        <span class="adm-stat-num">{{ stats.posts }}</span>
+        <span class="adm-stat-lbl">Posts</span>
+      </div>
+      <div class="adm-stat-card">
+        <span class="adm-stat-num">{{ stats.comments }}</span>
+        <span class="adm-stat-lbl">Comments</span>
+      </div>
+      <div class="adm-stat-card">
+        <span class="adm-stat-num">{{ stats.likes }}</span>
+        <span class="adm-stat-lbl">Likes</span>
+      </div>
+      <div class="adm-stat-card">
+        <span class="adm-stat-num">{{ stats.ratings }}</span>
+        <span class="adm-stat-lbl">Ratings</span>
+      </div>
+      <div class="adm-stat-card">
+        <span class="adm-stat-num">{{ stats.images }}</span>
+        <span class="adm-stat-lbl">Images</span>
+      </div>
+      <div class="adm-stat-card">
+        <span class="adm-stat-num">{{ stats.followers }}</span>
+        <span class="adm-stat-lbl">Follows</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Users -->
+  <section class="adm-section" id="users">
+    <h2 class="adm-section-title">
+      Users <span class="adm-count">{{ users|length }}</span>
+    </h2>
+    <div class="adm-table-wrap">
+      <table class="adm-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Email</th>
+            <th>Posts</th>
+            <th>Followers</th>
+            <th>Role</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+            <tr class="{% if u.is_admin %}adm-row-admin{% endif %}">
+              <td class="adm-muted">#{{ u.id }}</td>
+              <td>
+                <div class="adm-user-cell">
+                  {% if u.profile_photo and u.profile_photo != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='images/profiles/' ~ u.profile_photo) }}"
+                         class="adm-avatar" alt="">
+                  {% else %}
+                    <div class="adm-avatar adm-avatar-i">{{ u.username[0].upper() }}</div>
+                  {% endif %}
+                  <a href="{{ url_for('profile', user_id=u.id) }}" class="adm-link">
+                    {{ u.username }}
+                  </a>
+                </div>
+              </td>
+              <td class="adm-muted">{{ u.email or '—' }}</td>
+              <td>{{ u.post_count }}</td>
+              <td>{{ u.follower_count }}</td>
+              <td>
+                {% if u.is_admin %}
+                  <span class="adm-badge adm-badge-admin">Admin</span>
+                {% else %}
+                  <span class="adm-badge">User</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if not u.is_admin %}
+                  <form action="{{ url_for('admin_delete_user', user_id=u.id) }}"
+                        method="POST"
+                        onsubmit="return confirm('Delete {{ u.username }} and ALL their data? This cannot be undone.')">
+                    <button type="submit" class="adm-del-btn">Delete</button>
+                  </form>
+                {% else %}
+                  <span class="adm-muted">Protected</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Posts -->
+  <section class="adm-section" id="posts">
+    <h2 class="adm-section-title">
+      Posts <span class="adm-count">{{ posts|length }}</span>
+    </h2>
+    <div class="adm-table-wrap">
+      <table class="adm-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cover</th>
+            <th>Title</th>
+            <th>Location</th>
+            <th>By</th>
+            <th>★</th>
+            <th>♥</th>
+            <th>💬</th>
+            <th>🖼</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in posts %}
+            <tr>
+              <td class="adm-muted">#{{ p.id }}</td>
+              <td>
+                {% if p.cover_image %}
+                  <img src="{{ url_for('static', filename='images/spots/' ~ p.cover_image) }}"
+                       class="adm-thumb" alt="">
+                {% else %}
+                  <div class="adm-thumb adm-thumb-empty">—</div>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('spot_detail', spot_id=p.id) }}" class="adm-link">
+                  {{ p.name }}
+                </a>
+              </td>
+              <td class="adm-muted">{{ p.location or '—' }}</td>
+              <td>
+                <a href="{{ url_for('profile', user_id=p.user_id) }}" class="adm-link-soft">
+                  {{ p.username }}
+                </a>
+              </td>
+              <td>{{ p.avg_rating or '—' }}</td>
+              <td>{{ p.like_count }}</td>
+              <td>{{ p.comment_count }}</td>
+              <td>{{ p.image_count }}</td>
+              <td class="adm-muted">{{ p.created_at[:10] }}</td>
+              <td>
+                <form action="{{ url_for('admin_delete_post', post_id=p.id) }}"
+                      method="POST"
+                      onsubmit="return confirm('Delete post {{ p.name }}? This removes all its images, likes, ratings and comments.')">
+                  <button type="submit" class="adm-del-btn">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Comments -->
+  <section class="adm-section" id="comments">
+    <h2 class="adm-section-title">
+      Comments <span class="adm-count">{{ comments|length }}</span>
+    </h2>
+    <div class="adm-table-wrap">
+      <table class="adm-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Comment</th>
+            <th>By</th>
+            <th>On post</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in comments %}
+            <tr>
+              <td class="adm-muted">#{{ c.id }}</td>
+              <td class="adm-comment-cell">
+                {{ c.comment[:100] }}{% if c.comment|length > 100 %}…{% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('profile', user_id=c.user_id) }}" class="adm-link-soft">
+                  {{ c.author }}
+                </a>
+              </td>
+              <td>
+                <a href="{{ url_for('spot_detail', spot_id=c.spot_id) }}" class="adm-link">
+                  {{ c.spot_name }}
+                </a>
+              </td>
+              <td class="adm-muted">{{ c.created_at[:10] }}</td>
+              <td>
+                <form action="{{ url_for('admin_delete_comment', comment_id=c.id) }}"
+                      method="POST"
+                      onsubmit="return confirm('Delete this comment?')">
+                  <button type="submit" class="adm-del-btn">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+
+
+
+

@@ -14,7 +14,7 @@
   {% if posts %}
     <div class="feed-grid">
       {% for post in posts %}
-        <article class="fcard">
+        <article class="fcard" id="post-{{ post.id }}">
 
           <a href="{{ url_for('spot_detail', spot_id=post.id) }}" class="fcard-img-wrap">
             {% if post.cover_image %}
@@ -53,7 +53,7 @@
 
             {% if post.description %}
               <p class="fcard-desc">
-                {{ post.description[:110] }}{% if post.description|length > 110 %}…{% endif %}
+                {{ post.description[:110] }}{% if post.description|length > 110 %}...{% endif %}
               </p>
             {% endif %}
 
@@ -61,12 +61,10 @@
               <form action="{{ url_for('like', spot_id=post.id) }}" method="POST">
                 <button type="submit" class="like-btn {% if post.id in liked_ids %}liked{% endif %}">
                   {% if post.id in liked_ids %}♥{% else %}♡{% endif %}
-                  {{ post.like_count }}
+                  <span class="like-count">{{ post.like_count }}</span>
                 </button>
               </form>
-              <span class="fcard-comments">
-                💬 {{ post.comment_count }}
-              </span>
+              <span class="fcard-comments">💬 {{ post.comment_count }}</span>
             </div>
 
           </div>

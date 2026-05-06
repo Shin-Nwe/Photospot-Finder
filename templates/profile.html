@@ -4,7 +4,15 @@
 <div class="pf-wrap">
 
   <!-- Profile header -->
-  <div class="pf-hero">
+<div class="pf-hero">
+
+  {% if session.get('user_id') == user.id %}
+    <a href="{{ url_for('settings') }}" class="pf-settings-btn" title="Settings">
+      <span></span>
+      <span></span>
+      <span></span>
+    </a>
+  {% endif %}
 
     <div class="pf-avatar">
       {% if user.profile_photo and user.profile_photo != 'default.jpg' %}

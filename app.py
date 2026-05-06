@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 import sqlite3
 import os
 from werkzeug.utils import secure_filename
+from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
@@ -58,9 +59,30 @@ def init_db():
 init_db()
 
 
-@app.route("/")
-def home():
-    return render_template("index.html")
+@app.route('/')
+def index():
+    db = get_db()
+    popular = db.execute('''
+        SELECT
+            spots.id,
+            spots.name,
+            spots.location,
+            spots.cover_image,
+            users.username,
+            users.id AS user_id,
+            ROUND(AVG(ratings.rating), 1) AS avg_rating,
+            COUNT(DISTINCT likes.id)      AS like_count
+        FROM spots
+        JOIN users ON users.id = spots.user_id
+        LEFT JOIN ratings ON ratings.spot_id = spots.id
+        LEFT JOIN likes   ON likes.spot_id   = spots.id
+        GROUP BY spots.id
+        HAVING avg_rating IS NOT NULL
+        ORDER BY avg_rating DESC
+        LIMIT 6
+    ''').fetchall()
+
+    return render_template('index.html', popular=popular)
 
 @app.route("/about")
 def about():
@@ -188,6 +210,128 @@ def feed():
     db.close()
 
     return render_template("feed.html", posts=posts, liked_ids=liked_ids)
+
+
+
+@app.route('/settings')
+def settings():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    db = get_db()
+    user = db.execute(
+        'SELECT id, username, email FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+    return render_template('settings.html', user=user)
+
+
+@app.route('/settings/change_password', methods=['POST'])
+def change_password():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    current  = request.form.get('current_password', '')
+    new_pw   = request.form.get('new_password', '')
+    confirm  = request.form.get('confirm_password', '')
+
+    db   = get_db()
+    user = db.execute(
+        'SELECT password FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+
+    if not check_password_hash(user['password'], current):
+        flash('Current password is incorrect.', 'pw')
+        return redirect(url_for('settings') + '#password')
+
+    if len(new_pw) < 6:
+        flash('New password must be at least 6 characters.', 'pw')
+        return redirect(url_for('settings') + '#password')
+
+    if new_pw != confirm:
+        flash('New passwords do not match.', 'pw')
+        return redirect(url_for('settings') + '#password')
+
+    db.execute(
+        'UPDATE users SET password = ? WHERE id = ?',
+        (generate_password_hash(new_pw), session['user_id'])
+    )
+    db.commit()
+    flash('Password updated successfully.', 'pw_ok')
+    return redirect(url_for('settings') + '#password')
+
+
+@app.route('/settings/change_email', methods=['POST'])
+def change_email():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    new_email = request.form.get('new_email', '').strip()
+    password  = request.form.get('email_password', '')
+
+    if not new_email:
+        flash('Please enter a new email.', 'email')
+        return redirect(url_for('settings') + '#email')
+
+    db   = get_db()
+    user = db.execute(
+        'SELECT password FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+
+    if not check_password_hash(user['password'], password):
+        flash('Password is incorrect.', 'email')
+        return redirect(url_for('settings') + '#email')
+
+    existing = db.execute(
+        'SELECT id FROM users WHERE email = ? AND id != ?',
+        (new_email, session['user_id'])
+    ).fetchone()
+    if existing:
+        flash('That email is already in use.', 'email')
+        return redirect(url_for('settings') + '#email')
+
+    db.execute(
+        'UPDATE users SET email = ? WHERE id = ?',
+        (new_email, session['user_id'])
+    )
+    db.commit()
+    flash('Email updated successfully.', 'email_ok')
+    return redirect(url_for('settings') + '#email')
+
+
+@app.route('/settings/delete_account', methods=['POST'])
+def delete_account():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    password = request.form.get('delete_password', '')
+    db   = get_db()
+    user = db.execute(
+        'SELECT password FROM users WHERE id = ?',
+        (session['user_id'],)
+    ).fetchone()
+
+    if not check_password_hash(user['password'], password):
+        flash('Password is incorrect.', 'delete')
+        return redirect(url_for('settings') + '#delete')
+
+    uid = session['user_id']
+    # Delete in child-first order
+    db.execute('DELETE FROM followers WHERE follower_id=? OR following_id=?', (uid, uid))
+    db.execute('DELETE FROM likes     WHERE user_id=?', (uid,))
+    db.execute('DELETE FROM ratings   WHERE user_id=?', (uid,))
+    db.execute('DELETE FROM comments  WHERE user_id=?', (uid,))
+    db.execute('DELETE FROM spot_images WHERE spot_id IN (SELECT id FROM spots WHERE user_id=?)', (uid,))
+    db.execute('DELETE FROM spots     WHERE user_id=?', (uid,))
+    db.execute('DELETE FROM profiles  WHERE user_id=?', (uid,))
+    db.execute('DELETE FROM users     WHERE id=?',      (uid,))
+    db.commit()
+
+    session.clear()
+    flash('Your account has been deleted.', 'info')
+    return redirect(url_for('index'))
+
 
 
 @app.route("/add-post", methods=["GET", "POST"])
@@ -333,33 +477,51 @@ def spot_detail(spot_id):
     )
 
 
-@app.route("/like/<int:spot_id>", methods=["POST"])
+@app.route('/like/<int:spot_id>', methods=['POST'])
 def like(spot_id):
-    if "user_id" not in session:
-        return redirect("/login")
-
+    if 'user_id' not in session:
+        if request.headers.get('Content-Type') == 'application/json' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'error': 'Not logged in'}), 401
+        return redirect(url_for('login'))
+    
     db = get_db()
-
     existing = db.execute(
-        "SELECT 1 FROM likes WHERE user_id = ? AND spot_id = ?",
-        (session["user_id"], spot_id)
+        'SELECT 1 FROM likes WHERE user_id = ? AND spot_id = ?',
+        (session['user_id'], spot_id)
     ).fetchone()
-
+    
     if existing:
-        db.execute(
-            "DELETE FROM likes WHERE user_id = ? AND spot_id = ?",
-            (session["user_id"], spot_id)
-        )
+        db.execute('DELETE FROM likes WHERE user_id = ? AND spot_id = ?',
+                   (session['user_id'], spot_id))
+        liked = False
     else:
-        db.execute(
-            "INSERT INTO likes (user_id, spot_id) VALUES (?, ?)",
-            (session["user_id"], spot_id)
-        )
-
+        db.execute('INSERT INTO likes (user_id, spot_id) VALUES (?, ?)',
+                   (session['user_id'], spot_id))
+        liked = True
+    
+    # Get updated like count
+    like_count = db.execute(
+        'SELECT COUNT(*) FROM likes WHERE spot_id = ?',
+        (spot_id,)
+    ).fetchone()[0]
+    
     db.commit()
-    db.close()
-
-    return redirect(request.referrer or "/feed")
+    
+    # Check if this is an AJAX request
+    if request.headers.get('Content-Type') == 'application/json' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'liked': liked,
+            'like_count': like_count
+        })
+    
+    # Check referrer to determine where to redirect
+    referrer = request.referrer
+    if referrer and f'/spot/{spot_id}' in referrer:
+        # Came from spot detail page, redirect back there
+        return redirect(url_for('spot_detail', spot_id=spot_id))
+    else:
+        # Came from feed or other page, redirect to feed
+        return redirect(url_for('feed') + f'#post-{spot_id}')
 
 
 @app.route("/comment/<int:spot_id>", methods=["POST"])
@@ -379,6 +541,36 @@ def add_comment(spot_id):
         db.close()
 
     return redirect(f"/spot/{spot_id}#comments")
+
+
+@app.route("/delete-comment/<int:comment_id>", methods=["POST"])
+def delete_comment(comment_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    db = get_db()
+    
+    # Check if comment exists and belongs to current user
+    comment = db.execute(
+        "SELECT spot_id FROM comments WHERE id = ? AND user_id = ?",
+        (comment_id, session["user_id"])
+    ).fetchone()
+    
+    if comment:
+        # Delete the comment
+        db.execute("DELETE FROM comments WHERE id = ?", (comment_id,))
+        db.commit()
+        spot_id = comment["spot_id"]
+    else:
+        # Comment not found or doesn't belong to user
+        spot_id = None
+    
+    db.close()
+    
+    if spot_id:
+        return redirect(f"/spot/{spot_id}#comments")
+    else:
+        return redirect("/feed")
 
 
 @app.route("/rate/<int:spot_id>", methods=["POST"])

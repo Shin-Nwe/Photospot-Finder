@@ -2,48 +2,85 @@
 
 {% block content %}
 
-<div class="hero-box" style="background-image: url('{{ url_for('static', filename='images/bg1.jpg') }}')>
-<div class="hero-content">
-        <h1>PhotoSpot Finder </h1>
-        <p class="hero-description">
-    Discover stunning photo spots from hidden gems to iconic landmarks. 
-    <br>Capture unforgettable moments with helpful tips and inspiration.
-</p>
-        <a href="{{ url_for('feed') }}" class="glass-btn">Explore</a>
-    </div>
+<div class="hero-box" style="background-image: url('{{ url_for('static', filename='images/bg1.jpg') }}')">
+  <div class="hero-content">
+    <h1>PhotoSpot Finder</h1>
+    <p class="hero-description">
+      Discover stunning photo spots from hidden gems to iconic landmarks.
+      <br>Capture unforgettable moments with helpful tips and inspiration.
+    </p>
+    <a href="{{ url_for('feed') }}" class="glass-btn">Explore</a>
+  </div>
 </div>
 
 <hr>
 
 <div class="row text-center mt-4">
-
-<div class="col-md-4">
-<div class="card shadow">
-<div class="card-body">
-<h5>Discover Spots</h5>
-<p>Find beautiful places recommended by other photographers.</p>
-</div>
-</div>
-</div>
-
-<div class="col-md-4">
-<div class="card shadow">
-<div class="card-body">
-<h5>Share Reviews</h5>
-<p>Leave tips and ratings for photo locations.</p>
-</div>
-</div>
-</div>
-
-<div class="col-md-4">
-<div class="card shadow">
-<div class="card-body">
-<h5>Plan Your Photos</h5>
-<p>Know the best time and angle for great pictures.</p>
-</div>
-</div>
+  <div class="col-md-4">
+    <div class="card shadow">
+      <div class="card-body">
+        <h5>Discover Spots</h5>
+        <p>Find beautiful places recommended by other photographers.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow">
+      <div class="card-body">
+        <h5>Share Reviews</h5>
+        <p>Leave tips and ratings for photo locations.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow">
+      <div class="card-body">
+        <h5>Plan Your Photos</h5>
+        <p>Know the best time and angle for great pictures.</p>
+      </div>
+    </div>
+  </div>
 </div>
 
+<!-- Most Popular Spots -->
+{% if popular %}
+<div class="popular-section">
+
+  <div class="popular-hdr">
+    <h2 class="popular-title">Most Popular Spots</h2>
+    <a href="{{ url_for('feed') }}" class="popular-see-all">See all →</a>
+  </div>
+
+  <div class="popular-grid">
+    {% for spot in popular %}
+      <a href="{{ url_for('spot_detail', spot_id=spot.id) }}" class="pcard">
+
+        <div class="pcard-img-wrap">
+          {% if spot.cover_image %}
+            <img src="{{ url_for('static', filename='images/spots/' ~ spot.cover_image) }}"
+                 alt="{{ spot.name }}" class="pcard-img">
+          {% else %}
+            <div class="pcard-no-img">No photo</div>
+          {% endif %}
+          <span class="pcard-rating">★ {{ spot.avg_rating }}</span>
+        </div>
+
+        <div class="pcard-body">
+          <h3 class="pcard-title">{{ spot.name }}</h3>
+          {% if spot.location %}
+            <p class="pcard-loc">📍 {{ spot.location }}</p>
+          {% endif %}
+          <div class="pcard-footer">
+            <span class="pcard-user">{{ spot.username }}</span>
+            <span class="pcard-likes">♥ {{ spot.like_count }}</span>
+          </div>
+        </div>
+
+      </a>
+    {% endfor %}
+  </div>
+
 </div>
+{% endif %}
 
 {% endblock %}

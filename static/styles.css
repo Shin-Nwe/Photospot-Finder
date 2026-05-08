@@ -277,10 +277,18 @@ button {
 /* ===== ABOUT PAGE FIX ===== */
 
 .about-page {
-    background: #f6eef4;
     padding: 30px 0;
 }
-
+.about-banner{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 29px; /* bigger text */
+    font-weight: 700;
+    padding: 20px 0;
+    margin-bottom: 60px;
+}
 /* make each founder section */
 .about-section {
     display: grid;

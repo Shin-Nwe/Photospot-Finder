@@ -29,38 +29,38 @@
     <a href="#comments" class="adm-nav-item">💬 Comments ({{ comments|length }})</a>
   </div>
 
-<!-- Bar Chart -->
-  <section class="adm-section adm-chart-section">
-    <h2 class="adm-section-title">Site Activity</h2>
-    <div class="adm-chart">
+<!-- Pie Chart -->
+<section class="adm-section adm-chart-section">
+  <h2 class="adm-section-title">Site Activity</h2>
 
-      {% set chart_data = [
-        ('Users',    stats.users,    '#c8a96e'),
-        ('Posts',    stats.posts,    '#7eb8c9'),
-        ('Comments', stats.comments, '#9bc97e'),
-        ('Likes',    stats.likes,    '#e07e7e'),
-        ('Ratings',  stats.ratings,  '#b07ed4'),
-        ('Images',   stats.images,   '#e0b07e'),
-        ('Follows',  stats.followers,'#7ec9b0'),
-      ] %}
+  {% set total_val = stats.users + stats.posts + stats.comments + stats.likes + stats.ratings + stats.images + stats.followers %}
 
-      {% set max_val = [stats.users, stats.posts, stats.comments, stats.likes, stats.ratings, stats.images, stats.followers] | max %}
-
-      {% for label, value, color in chart_data %}
-        <div class="adm-bar-group">
-          <div class="adm-bar-track">
-            <div class="adm-bar-fill"
-                 style="height: {% if max_val > 0 %}{{ ((value / max_val) * 100) | round | int }}%{% else %}0%{% endif %};
-                        background: {{ color }};">
-              <span class="adm-bar-val">{{ value }}</span>
-            </div>
-          </div>
-          <span class="adm-bar-lbl">{{ label }}</span>
-        </div>
-      {% endfor %}
-
+  <div class="adm-pie-wrap">
+    <div class="adm-pie"
+      style="--users: {{ (stats.users / total_val * 100) if total_val > 0 else 0 }};
+             --posts: {{ (stats.posts / total_val * 100) if total_val > 0 else 0 }};
+             --comments: {{ (stats.comments / total_val * 100) if total_val > 0 else 0 }};
+             --likes: {{ (stats.likes / total_val * 100) if total_val > 0 else 0 }};
+             --ratings: {{ (stats.ratings / total_val * 100) if total_val > 0 else 0 }};
+             --images: {{ (stats.images / total_val * 100) if total_val > 0 else 0 }};
+             --follows: {{ (stats.followers / total_val * 100) if total_val > 0 else 0 }};">
+      <div class="adm-pie-center">
+        <span>{{ total_val }}</span>
+        <small>Total</small>
+      </div>
     </div>
-  </section>
+
+    <div class="adm-pie-legend">
+      <div><span class="pie-dot users"></span>Users — {{ stats.users }}</div>
+      <div><span class="pie-dot posts"></span>Posts — {{ stats.posts }}</div>
+      <div><span class="pie-dot comments"></span>Comments — {{ stats.comments }}</div>
+      <div><span class="pie-dot likes"></span>Likes — {{ stats.likes }}</div>
+      <div><span class="pie-dot ratings"></span>Ratings — {{ stats.ratings }}</div>
+      <div><span class="pie-dot images"></span>Images — {{ stats.images }}</div>
+      <div><span class="pie-dot follows"></span>Follows — {{ stats.followers }}</div>
+    </div>
+  </div>
+</section>
 
 
   <!-- Stats -->

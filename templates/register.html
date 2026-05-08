@@ -5,12 +5,11 @@
 <section class="login-section">
     <div class="register-box">
 
-
-
         <form action="/register" method="POST">
             <h2>Register</h2>
+
             {% if error %}
-            <div class="alert alert-danger">{{ error }}</div>
+            <div class="reg-error">{{ error }}</div>
             {% endif %}
 
             <div class="input-box">

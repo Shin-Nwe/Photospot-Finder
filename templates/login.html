@@ -2,30 +2,34 @@
 
 {% block content %}
 
+<section class="login-section">   
+    <div class="login-box">
 
-    <section class="login-section">   
-<div class="login-box">
-    {% if error %}
-        <div class="alert alert-danger">{{ error }}</div>
-    {% endif %}
-    
-    <form action="/login" method="POST">
-        <h2>Login</h2>
-        <div class="input-box">
-            <span class="icon"><ion-icon name="mail-outline"></ion-icon></span>
-            <input type="text" name="username" required>
-            <label>Email</label>
-        </div>
-        <div class="input-box">
-            <span class="icon"><ion-icon name="lock-closed-outline"></ion-icon></span>
-            <input type="password" name="password" required>
-            <label>Password</label>
-        </div>
-        <button type="submit">Login</button>
+        <form action="/login" method="POST">
+            <h2>Login</h2>
 
-    </form>
-</div>
+            {% if error %}
+            <div class="reg-error">{{ error }}</div>
+            {% endif %}
+
+            <div class="input-box">
+                <span class="icon"><ion-icon name="mail-outline"></ion-icon></span>
+                <input type="text" name="username" required>
+                <label>Email</label>
+            </div>
+
+            <div class="input-box">
+                <span class="icon"><ion-icon name="lock-closed-outline"></ion-icon></span>
+                <input type="password" name="password" required>
+                <label>Password</label>
+            </div>
+
+            <button type="submit">Login</button>
+
+        </form>
+    </div>
 </section>
+
 <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
 <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 

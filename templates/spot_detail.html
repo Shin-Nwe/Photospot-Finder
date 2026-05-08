@@ -155,7 +155,7 @@
               <div class="sd-post-row">
                 <button type="submit" class="sd-post-btn">Post</button>
                 {% if session.get('user_id') == spot.user_id %}
-                  <a href="{{ url_for('edit_post', post_id=spot.id) }}" class="sd-edit-btn">Edit / Delete</a>
+                  <a href="{{ url_for('edit_post', post_id=spot.id) }}" class="sd-edit-btn">Edit</a>
                 {% endif %}
               </div>
             </div>

@@ -59,9 +59,9 @@
         <div class="mb-4">
             <label class="form-label">Your rating (optional)</label>
             <div class="star-rating">
-                {% for i in range(5, 0, -1) %}
-                <input type="radio" name="rating" id="star{{ i }}" value="{{ i }}"
-                    {% if current_rating == i %}checked{% endif %}>
+                {% for i in range(1, 6) %}
+                <input type="radio" name="rating" id="star{{ i }}" value="{{ i }}" {% if post and post.rating and
+                    post.rating==i %}checked{% endif %}>
                 <label for="star{{ i }}">&#9733;</label>
                 {% endfor %}
             </div>

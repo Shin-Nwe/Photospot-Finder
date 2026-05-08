@@ -543,18 +543,25 @@ def delete_account():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
+    uid = session['user_id']
     password = request.form.get('delete_password', '')
-    db   = get_db()
+    db = get_db()
     user = db.execute(
         'SELECT password FROM users WHERE id = ?',
-        (session['user_id'],)
+        (uid,)
     ).fetchone()
 
+    if not user:
+        db.close()
+        session.clear()
+        flash('User not found.', 'delete')
+        return redirect(url_for('login'))
+
     if not check_password_hash(user['password'], password):
+        db.close()
         flash('Password is incorrect.', 'delete')
         return redirect(url_for('settings') + '#delete')
 
-    uid = session['user_id']
     # Delete in child-first order
     db.execute('DELETE FROM followers WHERE follower_id=? OR following_id=?', (uid, uid))
     db.execute('DELETE FROM likes     WHERE user_id=?', (uid,))
@@ -565,6 +572,7 @@ def delete_account():
     db.execute('DELETE FROM profiles  WHERE user_id=?', (uid,))
     db.execute('DELETE FROM users     WHERE id=?',      (uid,))
     db.commit()
+    db.close()
 
     session.clear()
     flash('Your account has been deleted.', 'info')
@@ -964,9 +972,26 @@ def edit_profile():
     db = get_db()
 
     if request.method == "POST":
+        username = request.form.get("username", "").strip()
         bio = request.form.get("bio", "").strip()
         instagram = request.form.get("instagram", "").strip()
         file = request.files.get("profile_photo")
+
+        if not username:
+            db.close()
+            flash("Username is required.", "error")
+            return redirect(url_for("edit_profile"))
+
+        # Check if username is taken by another user
+        existing_user = db.execute(
+            "SELECT id FROM users WHERE username = ? AND id != ?",
+            (username, user_id)
+        ).fetchone()
+
+        if existing_user:
+            db.close()
+            flash("Username is already taken.", "error")
+            return redirect(url_for("edit_profile"))
 
         filename = None
 
@@ -976,6 +1001,12 @@ def edit_profile():
 
             save_path = os.path.join(app.config["PROFILE_UPLOAD_FOLDER"], filename)
             file.save(save_path)
+
+        # Update username in users table
+        db.execute(
+            "UPDATE users SET username = ? WHERE id = ?",
+            (username, user_id)
+        )
 
         existing = db.execute(
             "SELECT * FROM profiles WHERE user_id = ?",
@@ -1004,6 +1035,10 @@ def edit_profile():
         db.commit()
         db.close()
 
+        # Update session
+        session["username"] = username
+
+        flash("Profile updated successfully.", "success")
         return redirect("/profile")
 
     user = db.execute("""

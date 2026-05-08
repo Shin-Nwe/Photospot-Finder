@@ -4,7 +4,20 @@
 <div class="ep-wrap">
   <h1 class="ep-title">Edit profile</h1>
 
+  {% for msg in get_flashed_messages(category_filter=['error']) %}
+    <div class="alert alert-danger">{{ msg }}</div>
+  {% endfor %}
+  {% for msg in get_flashed_messages(category_filter=['success']) %}
+    <div class="alert alert-success">{{ msg }}</div>
+  {% endfor %}
+
   <form action="{{ url_for('edit_profile') }}" method="POST" enctype="multipart/form-data">
+
+    <div class="ep-field">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username"
+             value="{{ user.username or '' }}" required>
+    </div>
 
     <div class="ep-field">
       <label>Profile photo</label>

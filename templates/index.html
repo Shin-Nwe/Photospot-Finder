@@ -28,7 +28,7 @@
 
   <div class="popular-grid">
     {% for spot in popular %}
-      <a href="{{ url_for('spot_detail', spot_id=spot.id) }}" class="pcard">
+      <a href="{% if session.get('user_id') %}{{ url_for('spot_detail', spot_id=spot.id) }}{% else %}{{ url_for('login') }}{% endif %}" class="pcard">
 
         <div class="pcard-img-wrap">
           {% if spot.cover_image %}

@@ -2,60 +2,213 @@
 
 {% block content %}
 
-<div class="hero-box" style="background-image: url('{{ url_for('static', filename='images/bg1.jpg') }}')">
-  <div class="hero-content">
-    <h1>PhotoSpot Finder</h1>
-    <p class="hero-description">
-      Discover stunning photo spots from hidden gems to iconic landmarks.
-      <br>Capture unforgettable moments with helpful tips and inspiration.
-    </p>
-    <a href="{{ url_for('feed') }}" class="glass-btn">Explore</a>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-img-wrap">
+    <img src="{{ url_for('static', filename='images/bg1.jpg') }}"
+         alt="hero" class="hero-bg" loading="eager">
+    <div class="hero-overlay"></div>
   </div>
-</div>
 
-<hr>
+  <div class="hero-content">
+    <p class="hero-eyebrow">✦ Discover · Share · Inspire</p>
+    <h1 class="hero-title">Pixel Trial</h1>
+    <p class="hero-tagline">
+      Find stunning photo spots from hidden gems<br>to iconic landmarks around the world.
+    </p>
+    <div class="hero-btns">
+      <a href="{{ url_for('feed') }}" class="hero-btn hero-btn-primary">Explore Spots</a>
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('add_post') }}" class="hero-btn hero-btn-ghost">+ Create Post</a>
+      {% else %}
+        <a href="{{ url_for('register') }}" class="hero-btn hero-btn-ghost">Join Free</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
 
+<!-- STATS -->
+<section class="stats-section">
+  <div class="stats-grid">
+    <div class="stat-item">
+      <span class="stat-num">{{ stats.users }}+</span>
+      <span class="stat-lbl">Creators</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-num">{{ stats.posts }}+</span>
+      <span class="stat-lbl">Spots Shared</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-num">{{ stats.likes }}+</span>
+      <span class="stat-lbl">Likes Given</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-num">{{ stats.comments }}+</span>
+      <span class="stat-lbl">Reviews Left</span>
+    </div>
+  </div>
+</section>
 
-
-<!-- Most Popular Spots -->
+<!-- POPULAR SPOTS -->
 {% if popular %}
-<div class="popular-section">
-
-  <div class="popular-hdr">
-    <h2 class="popular-title">Most Popular Spots</h2>
-    <a href="{{ url_for('feed') }}" class="popular-see-all">See all →</a>
+<section class="section popular-section">
+  <div class="section-hdr">
+    <div>
+      <p class="section-eyebrow">Community Favourites</p>
+      <h2 class="section-title">Most Popular Spots</h2>
+    </div>
+    <a href="{{ url_for('feed') }}" class="see-all-btn">View all →</a>
   </div>
 
   <div class="popular-grid">
     {% for spot in popular %}
-      <a href="{% if session.get('user_id') %}{{ url_for('spot_detail', spot_id=spot.id) }}{% else %}{{ url_for('login') }}{% endif %}" class="pcard">
-
+      <a href="{% if session.get('user_id') %}{{ url_for('spot_detail', spot_id=spot.id) }}{% else %}{{ url_for('login') }}{% endif %}"
+         class="pcard">
         <div class="pcard-img-wrap">
           {% if spot.cover_image %}
             <img src="{{ url_for('static', filename='images/spots/' ~ spot.cover_image) }}"
-                 alt="{{ spot.name }}" class="pcard-img">
+                 alt="{{ spot.name }}" class="pcard-img" loading="lazy">
           {% else %}
             <div class="pcard-no-img">No photo</div>
           {% endif %}
           <span class="pcard-rating">★ {{ spot.avg_rating }}</span>
+          <div class="pcard-hover-overlay">
+            <span class="pcard-hover-text">View Spot →</span>
+          </div>
         </div>
-
         <div class="pcard-body">
           <h3 class="pcard-title">{{ spot.name }}</h3>
-          {% if spot.location %}
-            <p class="pcard-loc">📍 {{ spot.location }}</p>
-          {% endif %}
+          {% if spot.location %}<p class="pcard-loc">📍 {{ spot.location }}</p>{% endif %}
           <div class="pcard-footer">
             <span class="pcard-user">{{ spot.username }}</span>
             <span class="pcard-likes">♥ {{ spot.like_count }}</span>
           </div>
         </div>
-
       </a>
     {% endfor %}
   </div>
 
-</div>
+  <div style="text-align:center; margin-top:2rem;">
+    <a href="{{ url_for('feed') }}" class="view-more-btn">View More Spots</a>
+  </div>
+</section>
 {% endif %}
+
+<!-- RECENT POSTS -->
+{% if recent %}
+<section class="section recent-section">
+  <div class="section-hdr">
+    <div>
+      <p class="section-eyebrow">Just Added</p>
+      <h2 class="section-title">Latest Posts</h2>
+    </div>
+  </div>
+  <div class="recent-scroll">
+    {% for post in recent %}
+      <a href="{% if session.get('user_id') %}{{ url_for('spot_detail', spot_id=post.id) }}{% else %}{{ url_for('login') }}{% endif %}"
+         class="recent-card">
+        <div class="recent-img-wrap">
+          {% if post.cover_image %}
+            <img src="{{ url_for('static', filename='images/spots/' ~ post.cover_image) }}"
+                 alt="{{ post.name }}" loading="lazy">
+          {% else %}
+            <div class="recent-no-img">No photo</div>
+          {% endif %}
+        </div>
+        <div class="recent-body">
+          <p class="recent-title">{{ post.name }}</p>
+          {% if post.location %}<p class="recent-loc">📍 {{ post.location }}</p>{% endif %}
+          <p class="recent-user">{{ post.username }}</p>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- FEATURED CREATORS -->
+{% if creators %}
+<section class="section creators-section">
+  <div class="section-hdr">
+    <div>
+      <p class="section-eyebrow">Top Contributors</p>
+      <h2 class="section-title">Featured Creators</h2>
+    </div>
+  </div>
+  <div class="creators-grid">
+    {% for c in creators %}
+      <a href="{{ url_for('profile', user_id=c.id) }}" class="creator-card">
+        <div class="creator-av-wrap">
+          {% if c.profile_photo and c.profile_photo != 'default.jpg' %}
+            <img src="{{ url_for('static', filename='images/profiles/' ~ c.profile_photo) }}"
+                 class="creator-av" alt="{{ c.username }}" loading="lazy">
+          {% else %}
+            <div class="creator-av creator-av-i">{{ c.username[0].upper() }}</div>
+          {% endif %}
+        </div>
+        <p class="creator-name">{{ c.username }}</p>
+        <p class="creator-posts">{{ c.post_count }} spots</p>
+        {% if c.bio %}
+          <p class="creator-bio">{{ c.bio[:50] }}{% if c.bio|length > 50 %}…{% endif %}</p>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- CTA -->
+{% if not session.get('user_id') %}
+<section class="cta-section">
+  <div class="cta-inner">
+    <p class="cta-eyebrow">✦ Join the community</p>
+    <h2 class="cta-title">Ready to share your favourite spots?</h2>
+    <p class="cta-desc">Join thousands of photographers and explorers sharing their world.</p>
+    <div class="cta-btns">
+      <a href="{{ url_for('register') }}" class="hero-btn hero-btn-primary">Create Account</a>
+      <a href="{{ url_for('login') }}"    class="hero-btn hero-btn-ghost">Log In</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <p class="footer-logo">Pixel Trial</p>
+      <p class="footer-about">A community for photographers and explorers to discover and share stunning photo spots around the world.</p>
+      <div class="footer-social">
+        <a href="#" class="footer-social-link">📷</a>
+        <a href="#" class="footer-social-link">🐦</a>
+        <a href="#" class="footer-social-link">📌</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <p class="footer-col-title">Quick Links</p>
+      <a href="{{ url_for('index') }}"  class="footer-link">Home</a>
+      <a href="{{ url_for('feed') }}"   class="footer-link">Feed</a>
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('add_post') }}" class="footer-link">Add Spot</a>
+        <a href="{{ url_for('profile', user_id=session['user_id']) }}" class="footer-link">My Profile</a>
+      {% else %}
+        <a href="{{ url_for('login') }}"    class="footer-link">Login</a>
+        <a href="{{ url_for('register') }}" class="footer-link">Register</a>
+      {% endif %}
+    </div>
+    <div class="footer-col">
+      <p class="footer-col-title">Contact</p>
+      <p class="footer-link">📧 hello@pixeltrial.com</p>
+      <p class="footer-link">📍 Sheffield, UK</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Pixel Trial. All rights reserved.</p>
+  </div>
+</footer>
+
 
 {% endblock %}

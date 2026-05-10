@@ -1,183 +1,233 @@
 {% extends "base.html" %}
-{% block title %}Settings — Photospot{% endblock %}
+{% block title %}Settings — Pixel Trial{% endblock %}
 
 {% block content %}
-<div class="st-wrap">
 
-  <div class="st-header">
-    <h1 class="st-title">Account Settings</h1>
-    <p class="st-sub">Manage your account security and preferences.</p>
-  </div>
+<div class="pts">
+<div class="pts__page">
 
-  <div class="st-layout">
+  <div class="pts__spotlight" aria-hidden="true"></div>
 
-    <!-- Sidebar nav -->
-    <nav class="st-nav">
-      <a href="#password" class="st-nav-item">🔒 Change Password</a>
-      <a href="#email"    class="st-nav-item">✉️ Change Email</a>
-      <a href="#privacy"  class="st-nav-item">🛡️ Privacy</a>
-      <a href="#logout"   class="st-nav-item">🚪 Log Out</a>
-      <a href="#delete"   class="st-nav-item st-nav-danger">🗑️ Delete Account</a>
+  <!-- Hero -->
+  <header class="pts__hero">
+    <p class="pts__eyebrow">⚙ Account Settings</p>
+    <h1 class="pts__title">Your Settings</h1>
+    <p class="pts__desc">Manage your profile, security, and account preferences all in one place.</p>
+  </header>
+
+  <div class="pts__layout">
+
+    <!-- Sidebar -->
+    <nav class="pts__nav" aria-label="Settings sections">
+      <a href="#profile"  class="pts__nav-link"><span class="pts__nav-icon">👤</span> Profile</a>
+      <a href="#security" class="pts__nav-link"><span class="pts__nav-icon">🔒</span> Security</a>
+      <a href="#email"    class="pts__nav-link"><span class="pts__nav-icon">✉️</span> Email</a>
+      <a href="#privacy"  class="pts__nav-link"><span class="pts__nav-icon">🛡️</span> Privacy</a>
+      <a href="#logout"   class="pts__nav-link"><span class="pts__nav-icon">🚪</span> Log Out</a>
+      <a href="#delete"   class="pts__nav-link pts__nav-link--danger"><span class="pts__nav-icon">🗑️</span> Delete</a>
     </nav>
 
-    <!-- Sections -->
-    <div class="st-sections">
+    <!-- Cards -->
+    <div class="pts__sections">
 
-      <!-- Flash messages helper macro -->
-      {% macro flash_msg(category, ok_category) %}
-        {% for msg in get_flashed_messages(category_filter=[category]) %}
-          <div class="st-alert st-alert-error">{{ msg }}</div>
+      {% macro flash_msgs(err_cat, ok_cat) %}
+        {% for msg in get_flashed_messages(category_filter=[err_cat]) %}
+          <div class="pts-alert pts-alert--error">⚠ {{ msg }}</div>
         {% endfor %}
-        {% for msg in get_flashed_messages(category_filter=[ok_category]) %}
-          <div class="st-alert st-alert-ok">{{ msg }}</div>
+        {% for msg in get_flashed_messages(category_filter=[ok_cat]) %}
+          <div class="pts-alert pts-alert--ok">✓ {{ msg }}</div>
         {% endfor %}
       {% endmacro %}
 
-      <!-- ── Change Password ──────────────────────────────────── -->
-      <section class="st-card" id="password">
-        <div class="st-card-header">
-          <span class="st-card-icon">🔒</span>
-          <div>
-            <h2 class="st-card-title">Change Password</h2>
-            <p class="st-card-sub">Use a strong password you don't use elsewhere.</p>
+      <!-- Edit Profile -->
+      <section class="pts-card" id="profile">
+        <div class="pts-card__hd">
+          <div class="pts-card__icon">👤</div>
+          <div class="pts-card__meta">
+            <h2 class="pts-card__title">Edit Profile</h2>
+            <p class="pts-card__sub">Update your username, photo, and personal info.</p>
+          </div>
+          <div class="pts-card__action">
+            <a href="{{ url_for('edit_profile') }}" class="pts-btn-ghost">Edit →</a>
           </div>
         </div>
-
-        {{ flash_msg('pw', 'pw_ok') }}
-
-        <form action="{{ url_for('change_password') }}" method="POST" class="st-form">
-          <div class="st-field">
-            <label class="st-label" for="current_password">Current password</label>
-            <input type="password" id="current_password" name="current_password"
-                   class="st-input" required>
+        <div class="pts-card__div"></div>
+        <div class="pts-card__bd">
+          <div class="pts-info">
+            <div class="pts-info__row">
+              <div>
+                <p class="pts-info__label">Username</p>
+                <p class="pts-info__value">{{ user.username }}</p>
+              </div>
+            </div>
+            <div class="pts-info__row">
+              <div>
+                <p class="pts-info__label">Email</p>
+                <p class="pts-info__value">{{ user.email or 'Not set' }}</p>
+              </div>
+            </div>
+            <div class="pts-info__row">
+              <div>
+                <p class="pts-info__label">Account ID</p>
+                <p class="pts-info__value">#{{ '%04d' % user.id }}</p>
+              </div>
+            </div>
           </div>
-          <div class="st-field">
-            <label class="st-label" for="new_password">New password</label>
-            <input type="password" id="new_password" name="new_password"
-                   class="st-input" required minlength="6">
-            <span class="st-hint">Minimum 6 characters</span>
-          </div>
-          <div class="st-field">
-            <label class="st-label" for="confirm_password">Confirm new password</label>
-            <input type="password" id="confirm_password" name="confirm_password"
-                   class="st-input" required>
-          </div>
-          <button type="submit" class="st-btn">Update password</button>
-        </form>
+        </div>
       </section>
 
-      <!-- ── Change Email ─────────────────────────────────────── -->
-      <section class="st-card" id="email">
-        <div class="st-card-header">
-          <span class="st-card-icon">✉️</span>
-          <div>
-            <h2 class="st-card-title">Change Email</h2>
-            <p class="st-card-sub">
-              Current: <strong>{{ user.email or 'Not set' }}</strong>
+      <!-- Password & Security -->
+      <section class="pts-card" id="security">
+        <div class="pts-card__hd">
+          <div class="pts-card__icon">🔒</div>
+          <div class="pts-card__meta">
+            <h2 class="pts-card__title">Password &amp; Security</h2>
+            <p class="pts-card__sub">Use a strong password you don't use elsewhere.</p>
+          </div>
+        </div>
+        <div class="pts-card__div"></div>
+        <div class="pts-card__bd">
+          {{ flash_msgs('pw', 'pw_ok') }}
+          <form action="{{ url_for('change_password') }}" method="POST" class="pts-form">
+            <div class="pts-field">
+              <label class="pts-label" for="current_password">Current password</label>
+              <input type="password" id="current_password" name="current_password"
+                     class="pts-input" required autocomplete="current-password">
+            </div>
+            <div class="pts-field">
+              <label class="pts-label" for="new_password">New password</label>
+              <input type="password" id="new_password" name="new_password"
+                     class="pts-input" required minlength="6" autocomplete="new-password">
+              <span class="pts-hint">Minimum 6 characters</span>
+            </div>
+            <div class="pts-field">
+              <label class="pts-label" for="confirm_password">Confirm new password</label>
+              <input type="password" id="confirm_password" name="confirm_password"
+                     class="pts-input" required autocomplete="new-password">
+            </div>
+            <div><button type="submit" class="pts-btn">Update password</button></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Change Email -->
+      <section class="pts-card" id="email">
+        <div class="pts-card__hd">
+          <div class="pts-card__icon">✉️</div>
+          <div class="pts-card__meta">
+            <h2 class="pts-card__title">Change Email</h2>
+            <p class="pts-card__sub">Current: <strong>{{ user.email or 'Not set' }}</strong></p>
+          </div>
+        </div>
+        <div class="pts-card__div"></div>
+        <div class="pts-card__bd">
+          {{ flash_msgs('email', 'email_ok') }}
+          <form action="{{ url_for('change_email') }}" method="POST" class="pts-form">
+            <div class="pts-field">
+              <label class="pts-label" for="new_email">New email address</label>
+              <input type="email" id="new_email" name="new_email"
+                     class="pts-input" required autocomplete="email">
+            </div>
+            <div class="pts-field">
+              <label class="pts-label" for="email_password">Confirm with your password</label>
+              <input type="password" id="email_password" name="email_password"
+                     class="pts-input" required autocomplete="current-password">
+            </div>
+            <div><button type="submit" class="pts-btn">Update email</button></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Privacy -->
+      <section class="pts-card" id="privacy">
+        <div class="pts-card__hd">
+          <div class="pts-card__icon">🛡️</div>
+          <div class="pts-card__meta">
+            <h2 class="pts-card__title">Privacy</h2>
+            <p class="pts-card__sub">Control how your account appears to others.</p>
+          </div>
+        </div>
+        <div class="pts-card__div"></div>
+        <div class="pts-card__bd">
+          <div class="pts-info">
+            <div class="pts-info__row">
+              <div>
+                <p class="pts-info__label">Profile visibility</p>
+                <p class="pts-info__value">Visible to all users</p>
+              </div>
+              <a href="{{ url_for('edit_profile') }}" class="pts-btn-ghost pts-card__action">Edit</a>
+            </div>
+            <div class="pts-info__row">
+              <div>
+                <p class="pts-info__label">Posts &amp; spots</p>
+                <p class="pts-info__value">Visible to everyone</p>
+              </div>
+            </div>
+            <div class="pts-info__row">
+              <div>
+                <p class="pts-info__label">Account number</p>
+                <p class="pts-info__value">
+                  <span class="pts-badge">#{{ '%04d' % user.id }}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Log Out -->
+      <section class="pts-card pts-card--warn" id="logout">
+        <div class="pts-card__hd">
+          <div class="pts-card__icon">🚪</div>
+          <div class="pts-card__meta">
+            <h2 class="pts-card__title">Log Out</h2>
+            <p class="pts-card__sub">You'll be returned to the login page.</p>
+          </div>
+        </div>
+        <div class="pts-warn-strip">⚠ Your session will end immediately.</div>
+        <div class="pts-card__bd">
+          <form action="{{ url_for('logout') }}" method="GET">
+            <button type="submit" class="pts-btn-warn">🚪 Log out of Pixel Trial</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Delete Account -->
+      <section class="pts-card pts-card--danger" id="delete">
+        <div class="pts-card__hd">
+          <div class="pts-card__icon">🗑️</div>
+          <div class="pts-card__meta">
+            <h2 class="pts-card__title">Delete Account</h2>
+            <p class="pts-card__sub">
+              Permanently deletes your account, spots, comments, likes, and followers.
+              <strong>This cannot be undone.</strong>
             </p>
           </div>
         </div>
-
-        {{ flash_msg('email', 'email_ok') }}
-
-        <form action="{{ url_for('change_email') }}" method="POST" class="st-form">
-          <div class="st-field">
-            <label class="st-label" for="new_email">New email address</label>
-            <input type="email" id="new_email" name="new_email"
-                   class="st-input" required>
-          </div>
-          <div class="st-field">
-            <label class="st-label" for="email_password">Confirm with your password</label>
-            <input type="password" id="email_password" name="email_password"
-                   class="st-input" required>
-          </div>
-          <button type="submit" class="st-btn">Update email</button>
-        </form>
-      </section>
-
-      <!-- ── Privacy ──────────────────────────────────────────── -->
-      <section class="st-card" id="privacy">
-        <div class="st-card-header">
-          <span class="st-card-icon">🛡️</span>
-          <div>
-            <h2 class="st-card-title">Privacy</h2>
-            <p class="st-card-sub">Control how your account appears to others.</p>
-          </div>
-        </div>
-
-        <div class="st-info-list">
-          <div class="st-info-row">
-            <div>
-              <p class="st-info-label">Profile visibility</p>
-              <p class="st-info-value">Your profile is visible to all users.</p>
+        <div class="pts-card__div"></div>
+        <div class="pts-card__bd">
+          {% for msg in get_flashed_messages(category_filter=['delete']) %}
+            <div class="pts-alert pts-alert--error">⚠ {{ msg }}</div>
+          {% endfor %}
+          <form action="{{ url_for('delete_account') }}" method="POST" class="pts-form"
+                onsubmit="return confirm('Are you absolutely sure? All your data will be permanently erased. This cannot be undone.');">
+            <div class="pts-field">
+              <label class="pts-label" for="delete_password">Enter password to confirm</label>
+              <input type="password" id="delete_password" name="delete_password"
+                     class="pts-input pts-input--danger"
+                     required autocomplete="current-password"
+                     placeholder="Your current password">
             </div>
-            <a href="{{ url_for('edit_profile') }}" class="st-btn-outline">Edit profile</a>
-          </div>
-          <div class="st-info-row">
             <div>
-              <p class="st-info-label">Posts</p>
-              <p class="st-info-value">Your spots are visible to everyone.</p>
+              <button type="submit" class="pts-btn-danger">🗑️ Yes, permanently delete my account</button>
             </div>
-          </div>
-          <div class="st-info-row">
-            <div>
-              <p class="st-info-label">Account created</p>
-              <p class="st-info-value">User #{{ '%04d' % user.id }}</p>
-            </div>
-          </div>
+          </form>
         </div>
-      </section>
-
-      <!-- ── Log Out ──────────────────────────────────────────── -->
-      <section class="st-card" id="logout">
-        <div class="st-card-header">
-          <span class="st-card-icon">🚪</span>
-          <div>
-            <h2 class="st-card-title">Log Out</h2>
-            <p class="st-card-sub">You will be returned to the login page.</p>
-          </div>
-        </div>
-        <form action="{{ url_for('logout') }}" method="GET">
-          <button type="submit" class="st-btn-outline">Log out of Photospot</button>
-        </form>
-      </section>
-
-      <!-- ── Delete Account ───────────────────────────────────── -->
-      <section class="st-card st-card-danger" id="delete">
-        <div class="st-card-header">
-          <span class="st-card-icon">🗑️</span>
-          <div>
-            <h2 class="st-card-title st-danger-title">Delete Account</h2>
-            <p class="st-card-sub">
-              This will permanently delete your account, all your spots,
-              comments, likes, and followers. This cannot be undone.
-            </p>
-          </div>
-        </div>
-
-        {% for msg in get_flashed_messages(category_filter=['delete']) %}
-          <div class="st-alert st-alert-error">{{ msg }}</div>
-        {% endfor %}
-
-        <form action="{{ url_for('delete_account') }}" method="POST" class="st-form"
-              onsubmit="return confirm('Are you absolutely sure? This cannot be undone.');">
-          <div class="st-field">
-            <label class="st-label" for="delete_password">
-              Enter your password to confirm
-            </label>
-            <input type="password" id="delete_password" name="delete_password"
-                   class="st-input st-input-danger" required>
-          </div>
-          <button type="submit" class="st-btn-danger">
-            Yes, permanently delete my account
-          </button>
-        </form>
       </section>
 
     </div>
   </div>
 </div>
-
-
+</div>
 
 {% endblock %}

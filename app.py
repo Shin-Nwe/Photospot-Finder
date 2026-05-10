@@ -268,16 +268,13 @@ def admin_delete_comment(comment_id):
 @app.route('/')
 def index():
     db = get_db()
+
+    # Popular spots
     popular = db.execute('''
-        SELECT
-            spots.id,
-            spots.name,
-            spots.location,
-            spots.cover_image,
-            users.username,
-            users.id AS user_id,
-            ROUND(AVG(ratings.rating), 1) AS avg_rating,
-            COUNT(DISTINCT likes.id)      AS like_count
+        SELECT spots.id, spots.name, spots.location, spots.cover_image,
+               users.username,
+               ROUND(AVG(ratings.rating), 1) AS avg_rating,
+               COUNT(DISTINCT likes.id) AS like_count
         FROM spots
         JOIN users ON users.id = spots.user_id
         LEFT JOIN ratings ON ratings.spot_id = spots.id
@@ -288,7 +285,45 @@ def index():
         LIMIT 6
     ''').fetchall()
 
-    return render_template('index.html', popular=popular)
+    # Recent posts
+    recent = db.execute('''
+        SELECT spots.id, spots.name, spots.location, spots.cover_image,
+               users.username
+        FROM spots
+        JOIN users ON users.id = spots.user_id
+        ORDER BY spots.created_at DESC
+        LIMIT 10
+    ''').fetchall()
+
+    # Featured creators
+    creators = db.execute('''
+        SELECT users.id, users.username,
+               profiles.profile_photo, profiles.bio,
+               COUNT(spots.id) AS post_count
+        FROM users
+        LEFT JOIN profiles ON profiles.user_id = users.id
+        LEFT JOIN spots    ON spots.user_id     = users.id
+        WHERE COALESCE(users.is_admin, 0) = 0
+        GROUP BY users.id
+        HAVING post_count > 0
+        ORDER BY post_count DESC
+        LIMIT 6
+    ''').fetchall()
+
+    # Stats
+    stats = {
+        'users':    db.execute('SELECT COUNT(*) FROM users').fetchone()[0],
+        'posts':    db.execute('SELECT COUNT(*) FROM spots').fetchone()[0],
+        'likes':    db.execute('SELECT COUNT(*) FROM likes').fetchone()[0],
+        'comments': db.execute('SELECT COUNT(*) FROM comments').fetchone()[0],
+    }
+
+    return render_template('index.html',
+        popular=popular,
+        recent=recent,
+        creators=creators,
+        stats=stats
+    )
 
 @app.route("/about")
 def about():
